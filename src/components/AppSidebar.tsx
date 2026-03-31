@@ -1,7 +1,4 @@
-import { 
-  LayoutDashboard, ListTodo, Database, Shield, Cpu, 
-  Bot, Settings, ChevronLeft, Wallet, Bell 
-} from "lucide-react";
+import { LayoutDashboard, Database, Shield, Settings, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -19,10 +16,7 @@ import {
 
 const mainNav = [
   { title: "Обзор", url: "/", icon: LayoutDashboard },
-  { title: "Задачи", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
-  { title: "Вычисления", url: "/compute", icon: Cpu },
-  { title: "AI Агенты", url: "/agents", icon: Bot },
   { title: "Escrow", url: "/escrow", icon: Shield },
 ];
 
@@ -35,10 +29,13 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
+            <span className="text-primary-foreground font-heading font-bold text-xs">DA</span>
           </div>
           {!collapsed && (
-            <span className="font-heading font-bold text-foreground text-lg">NexusAI</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-heading font-bold text-foreground text-lg leading-tight">DataArbiter</span>
+              <span className="text-[10px] text-muted-foreground truncate">Solana · AI escrow</span>
+            </div>
           )}
         </div>
       </SidebarHeader>
@@ -93,7 +90,7 @@ export function AppSidebar() {
               <span className="text-xs text-muted-foreground">Кошелёк</span>
             </div>
             <p className="text-xs text-foreground font-mono truncate">0x7a3B...9fE2</p>
-            <p className="text-xs text-primary font-medium mt-1">1,250 NXS</p>
+            <p className="text-xs text-primary font-medium mt-1">12.4 SOL (эскроу)</p>
           </div>
         )}
       </SidebarFooter>
