@@ -1,4 +1,4 @@
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, Clock, ArrowRight, ExternalLink } from "lucide-react";
+import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -29,8 +29,10 @@ export default function EscrowPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Escrow и арбитраж</h1>
-        <p className="text-sm text-muted-foreground mt-1">Смарт-контракт с AI-арбитражем</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">Escrow DataArbiter</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Solana-программа: заморозка SOL → хэш датасета → AI Judge подписывает release или refund
+        </p>
       </div>
 
       {/* Pipeline */}
