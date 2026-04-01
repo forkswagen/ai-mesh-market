@@ -1,8 +1,28 @@
-import { Settings, Wallet, Shield, Bell, User } from "lucide-react";
+import { Wallet, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileStats, useSetPrivacy } from "@/hooks/use-api";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export default function SettingsPage() {
+  const { user, isAuthenticated } = useAuth();
+  const { data: stats } = useProfileStats();
+  const setPrivacy = useSetPrivacy();
+  const [privacyEnabled, setPrivacyEnabled] = useState(true);
+
+  const handlePrivacyToggle = () => {
+    const newValue = !privacyEnabled;
+    setPrivacy.mutate(newValue, {
+      onSuccess: () => {
+        setPrivacyEnabled(newValue);
+        toast.success(`Privacy Mode ${newValue ? "включён" : "выключен"}`);
+      },
+      onError: (err) => toast.error((err as Error).message),
+    });
+  };
+
   return (
     <div className="p-6 max-w-3xl space-y-6">
       <h1 className="font-heading text-2xl font-bold text-foreground">Настройки</h1>
@@ -16,13 +36,16 @@ export default function SettingsPage() {
           <div>
             <p className="text-muted-foreground text-xs mb-1">Роли</p>
             <div className="flex gap-1.5">
-              <Badge variant="outline" className="text-xs border-primary/20 text-primary">Исполнитель</Badge>
-              <Badge variant="outline" className="text-xs border-secondary/20 text-secondary">Заказчик</Badge>
+              <Badge variant="outline" className="text-xs border-primary/20 text-primary">
+                {user?.is_provider ? "Исполнитель" : "Заказчик"}
+              </Badge>
             </div>
           </div>
           <div>
             <p className="text-muted-foreground text-xs mb-1">Репутация</p>
-            <p className="text-foreground font-medium">4.87 / 5.0</p>
+            <p className="text-foreground font-medium">
+              {stats?.reputation?.toFixed(2) ?? "—"} / 5.0
+            </p>
           </div>
         </div>
       </div>
@@ -35,15 +58,36 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">Адрес</p>
-            <p className="text-sm font-mono text-foreground">0x7a3B4c5D6e7F8a9B0c1D2E3f4A5b6C7d8E9fE2</p>
+            <p className="text-sm font-mono text-foreground">
+              {isAuthenticated && user ? user.wallet : "Не подключён"}
+            </p>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">Скопировать</Button>
+          {user && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => {
+                navigator.clipboard.writeText(user.wallet);
+                toast.success("Скопировано!");
+              }}
+            >
+              Скопировать
+            </Button>
+          )}
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div><p className="text-xs text-muted-foreground mb-1">NXS</p><p className="font-heading text-lg font-bold text-foreground">1,250</p></div>
-          <div><p className="text-xs text-muted-foreground mb-1">USDT</p><p className="font-heading text-lg font-bold text-foreground">340</p></div>
-          <div><p className="text-xs text-muted-foreground mb-1">Staked</p><p className="font-heading text-lg font-bold text-primary">500 NXS</p></div>
-        </div>
+        {stats && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Заработано</p>
+              <p className="font-heading text-lg font-bold text-foreground">{stats.total_earned} SOL</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Задач выполнено</p>
+              <p className="font-heading text-lg font-bold text-foreground">{stats.tasks_completed}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="surface p-5">
@@ -56,7 +100,15 @@ export default function SettingsPage() {
             <p className="text-sm text-foreground">Глобальный Privacy Mode</p>
             <p className="text-xs text-muted-foreground">E2E шифрование, данные не сохраняются</p>
           </div>
-          <Button variant="outline" size="sm" className="text-xs">Включён</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={handlePrivacyToggle}
+            disabled={setPrivacy.isPending}
+          >
+            {privacyEnabled ? "Включён" : "Выключен"}
+          </Button>
         </div>
       </div>
     </div>
