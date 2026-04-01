@@ -1,58 +1,57 @@
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Database, Cpu, Shield, Bot } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const stats = [
-  { label: "Баланс", value: "1,250 NXS", change: "+12.5%", up: true, icon: Zap },
-  { label: "Активные задачи", value: "8", change: "+3", up: true, icon: TrendingUp },
-  { label: "Выполнено", value: "147", change: "за неделю", up: true, icon: Shield },
-  { label: "Репутация", value: "4.87", change: "top 5%", up: true, icon: Bot },
-];
-
-const recentTasks = [
-  { title: "CAPTCHA пакет #4421", type: "CAPTCHA", reward: "12 NXS", status: "in_progress", time: "2 мин назад" },
-  { title: "TTS оценка — RU-модель", type: "TTS/STT", reward: "45 NXS", status: "completed", time: "14 мин назад" },
-  { title: "Аннотация мед. снимков", type: "Аннотация", reward: "180 NXS", status: "in_progress", time: "1ч назад" },
-  { title: "Cloudflare bypass x200", type: "CAPTCHA", reward: "8 NXS", status: "pending", time: "2ч назад" },
-  { title: "STT проверка EN/DE", type: "TTS/STT", reward: "65 NXS", status: "completed", time: "3ч назад" },
-];
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileStats, useTasks, useNotifications } from "@/hooks/use-api";
 
 const statusColors: Record<string, string> = {
+  open: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
   in_progress: "bg-primary/10 text-primary border-primary/20",
   completed: "bg-green-500/10 text-green-400 border-green-500/20",
   pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
 };
 const statusLabels: Record<string, string> = {
+  open: "Открыта",
   in_progress: "В работе",
   completed: "Завершено",
   pending: "Ожидает",
 };
 
-const activity = [
-  { text: "Escrow разблокирован: 45 NXS за TTS оценку", time: "14 мин" },
-  { text: "AI Judge: задача #4398 — выполнено на 100%", time: "28 мин" },
-  { text: "Новый датасет доступен: Speech-RU v3", time: "1ч" },
-  { text: "GPU аренда завершена: 4.2 GPU-hrs", time: "2ч" },
-  { text: "Dispute отклонён по задаче #4305", time: "5ч" },
-];
-
 export default function DashboardPage() {
+  const { user, isAuthenticated } = useAuth();
+  const { data: stats, isLoading: statsLoading } = useProfileStats();
+  const { data: tasks, isLoading: tasksLoading } = useTasks("open");
+  const { data: notifications } = useNotifications();
+
+  const statCards = [
+    { label: "Заработано", value: stats ? `${stats.total_earned} SOL` : "—", change: "", up: true, icon: Zap },
+    { label: "Активные задачи", value: stats?.tasks_created?.toString() ?? "—", change: "", up: true, icon: TrendingUp },
+    { label: "Выполнено", value: stats?.tasks_completed?.toString() ?? "—", change: "", up: true, icon: Shield },
+    { label: "Репутация", value: stats?.reputation?.toFixed(2) ?? "—", change: "", up: true, icon: Bot },
+  ];
+
   return (
     <div className="p-6 space-y-6">
+      {!isAuthenticated && (
+        <div className="surface p-4 border-primary/30 bg-primary/5 text-center">
+          <p className="text-sm text-foreground">Подключите кошелёк для доступа ко всем функциям платформы</p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
+        {statCards.map((s) => (
           <div key={s.label} className="surface p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground">{s.label}</span>
               <s.icon className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex items-end gap-2">
-              <span className="font-heading text-2xl font-bold text-foreground">{s.value}</span>
-              <span className="text-xs text-primary flex items-center gap-0.5 mb-1">
-                {s.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                {s.change}
-              </span>
+              {statsLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : (
+                <span className="font-heading text-2xl font-bold text-foreground">{s.value}</span>
+              )}
             </div>
           </div>
         ))}
@@ -68,25 +67,35 @@ export default function DashboardPage() {
             </Button>
           </div>
           <div className="divide-y divide-border">
-            {recentTasks.map((task, i) => (
-              <div key={i} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground truncate">{task.title}</span>
-                    <Badge variant="outline" className="text-[10px] border-border text-muted-foreground flex-shrink-0">
-                      {task.type}
+            {tasksLoading ? (
+              <div className="p-8 flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : tasks && tasks.length > 0 ? (
+              tasks.slice(0, 5).map((task) => (
+                <div key={task.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-foreground truncate">{task.title}</span>
+                      <Badge variant="outline" className="text-[10px] border-border text-muted-foreground flex-shrink-0">
+                        {task.task_type}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(task.created_at).toLocaleString("ru-RU")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span className="text-sm font-medium text-primary">{task.total_budget} SOL</span>
+                    <Badge variant="outline" className={`text-[10px] ${statusColors[task.status] || ""}`}>
+                      {statusLabels[task.status] || task.status}
                     </Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">{task.time}</span>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                  <span className="text-sm font-medium text-primary">{task.reward}</span>
-                  <Badge variant="outline" className={`text-[10px] ${statusColors[task.status]}`}>
-                    {statusLabels[task.status]}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="p-8 text-center text-sm text-muted-foreground">Нет задач</div>
+            )}
           </div>
         </div>
 
@@ -96,12 +105,18 @@ export default function DashboardPage() {
             <h2 className="font-heading font-semibold text-foreground">Активность</h2>
           </div>
           <div className="p-2">
-            {activity.map((a, i) => (
-              <div key={i} className="px-3 py-3 rounded-md hover:bg-muted/30 transition-colors cursor-default">
-                <p className="text-sm text-foreground/90 leading-snug">{a.text}</p>
-                <p className="text-xs text-muted-foreground mt-1">{a.time} назад</p>
-              </div>
-            ))}
+            {notifications && notifications.length > 0 ? (
+              notifications.slice(0, 5).map((n) => (
+                <div key={n.id} className="px-3 py-3 rounded-md hover:bg-muted/30 transition-colors cursor-default">
+                  <p className="text-sm text-foreground/90 leading-snug">{n.text}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(n.created_at).toLocaleString("ru-RU")}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-sm text-muted-foreground">Нет активности</div>
+            )}
           </div>
         </div>
       </div>
