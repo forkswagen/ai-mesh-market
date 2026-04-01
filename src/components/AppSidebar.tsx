@@ -1,8 +1,9 @@
 import { 
   LayoutDashboard, ListTodo, Database, Shield, Cpu, 
-  Bot, Settings, ChevronLeft, Wallet, Bell 
+  Bot, Settings, Wallet 
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -29,16 +30,17 @@ const mainNav = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
+            <span className="text-primary-foreground font-heading font-bold text-sm">S</span>
           </div>
           {!collapsed && (
-            <span className="font-heading font-bold text-foreground text-lg">NexusAI</span>
+            <span className="font-heading font-bold text-foreground text-lg">SolToloka</span>
           )}
         </div>
       </SidebarHeader>
@@ -92,8 +94,16 @@ export function AppSidebar() {
               <Wallet className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs text-muted-foreground">Кошелёк</span>
             </div>
-            <p className="text-xs text-foreground font-mono truncate">0x7a3B...9fE2</p>
-            <p className="text-xs text-primary font-medium mt-1">1,250 NXS</p>
+            {isAuthenticated && user ? (
+              <>
+                <p className="text-xs text-foreground font-mono truncate">
+                  {user.wallet.slice(0, 4)}...{user.wallet.slice(-4)}
+                </p>
+                <p className="text-xs text-primary font-medium mt-1">Подключён</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Не подключён</p>
+            )}
           </div>
         )}
       </SidebarFooter>
