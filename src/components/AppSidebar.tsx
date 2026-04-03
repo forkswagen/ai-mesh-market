@@ -1,5 +1,6 @@
 import { LayoutDashboard, Database, Shield, Settings, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +24,7 @@ const mainNav = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -89,8 +91,16 @@ export function AppSidebar() {
               <Wallet className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs text-muted-foreground">Кошелёк</span>
             </div>
-            <p className="text-xs text-foreground font-mono truncate">0x7a3B...9fE2</p>
-            <p className="text-xs text-primary font-medium mt-1">12.4 SOL (эскроу)</p>
+            {isAuthenticated && user ? (
+              <>
+                <p className="text-xs text-foreground font-mono truncate">
+                  {user.wallet.slice(0, 4)}...{user.wallet.slice(-4)}
+                </p>
+                <p className="text-xs text-primary font-medium mt-1">Подключён</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Не подключён</p>
+            )}
           </div>
         )}
       </SidebarFooter>
