@@ -1,15 +1,6 @@
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight } from "lucide-react";
+import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-const escrows = [
-  { id: "#4421", task: "CAPTCHA пакет x1000", amount: "50 USDT", status: "locked", judge: "pending", time: "2ч назад" },
-  { id: "#4398", task: "TTS оценка RU-модель", amount: "120 USDT", status: "released", judge: "100%", time: "14 мин назад" },
-  { id: "#4385", task: "Аннотация мед. снимков", amount: "200 USDT", status: "locked", judge: "pending", time: "1д назад" },
-  { id: "#4372", task: "STT проверка EN/DE", amount: "80 USDT", status: "released", judge: "95%", time: "3ч назад" },
-  { id: "#4350", task: "Сегментация видео", amount: "350 USDT", status: "disputed", judge: "partial", time: "2д назад" },
-  { id: "#4305", task: "Cloudflare bypass x500", amount: "25 USDT", status: "refunded", judge: "rejected", time: "5д назад" },
-];
+import { useEscrowTransactions } from "@/hooks/use-api";
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
   locked: { label: "Заморожено", cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
@@ -26,6 +17,8 @@ const steps = [
 ];
 
 export default function EscrowPage() {
+  const { data: escrows, isLoading, error } = useEscrowTransactions();
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -66,19 +59,32 @@ export default function EscrowPage() {
         <div className="grid grid-cols-[60px_1fr_100px_100px_90px_80px] gap-4 px-4 py-3 border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
           <span>ID</span><span>Задача</span><span>Сумма</span><span>Статус</span><span>AI Judge</span><span>Время</span>
         </div>
-        {escrows.map((e) => {
-          const st = statusConfig[e.status];
-          return (
-            <div key={e.id} className="grid grid-cols-[60px_1fr_100px_100px_90px_80px] gap-4 px-4 py-3.5 items-center border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
-              <span className="text-xs font-mono text-muted-foreground">{e.id}</span>
-              <span className="text-sm text-foreground truncate">{e.task}</span>
-              <span className="text-sm font-medium text-primary">{e.amount}</span>
-              <Badge variant="outline" className={`text-[10px] w-fit ${st.cls}`}>{st.label}</Badge>
-              <span className="text-xs text-muted-foreground">{e.judge}</span>
-              <span className="text-xs text-muted-foreground">{e.time}</span>
-            </div>
-          );
-        })}
+
+        {isLoading ? (
+          <div className="p-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : error ? (
+          <div className="p-8 text-center text-sm text-destructive">Ошибка: {(error as Error).message}</div>
+        ) : escrows && escrows.length > 0 ? (
+          escrows.map((e) => {
+            const st = statusConfig[e.status] || statusConfig.locked;
+            return (
+              <div key={e.id} className="grid grid-cols-[60px_1fr_100px_100px_90px_80px] gap-4 px-4 py-3.5 items-center border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
+                <span className="text-xs font-mono text-muted-foreground">#{e.id.slice(0, 4)}</span>
+                <span className="text-sm text-foreground truncate">{e.task_title}</span>
+                <span className="text-sm font-medium text-primary">{e.amount} {e.currency}</span>
+                <Badge variant="outline" className={`text-[10px] w-fit ${st.cls}`}>{st.label}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {e.ai_score !== null ? `${(e.ai_score * 100).toFixed(0)}%` : "pending"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(e.created_at).toLocaleDateString("ru-RU")}
+                </span>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-8 text-center text-sm text-muted-foreground">Нет транзакций</div>
+        )}
       </div>
     </div>
   );
