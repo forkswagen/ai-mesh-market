@@ -22,9 +22,10 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ai-mesh-market.vercel.app/" />
     <meta property="og:locale" content="ru_RU" />
-    <!-- v=3 cache-bust: мессенджеры держат старый og:image по URL; новый query → новое превью -->
-    <meta property="og:image" content="https://ai-mesh-market.vercel.app/og.png?v=3" />
-    <meta property="og:image:secure_url" content="https://ai-mesh-market.vercel.app/og.png?v=3" />
+    <!-- Новый путь картинки (не только ?query): Telegram часто кэширует старое превью с Lovable по URL og.png -->
+    <link rel="image_src" href="https://ai-mesh-market.vercel.app/nexusai-share-card.png" />
+    <meta property="og:image" content="https://ai-mesh-market.vercel.app/nexusai-share-card.png" />
+    <meta property="og:image:secure_url" content="https://ai-mesh-market.vercel.app/nexusai-share-card.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="669" />
@@ -36,8 +37,18 @@
       name="twitter:description"
       content="Маркетплейс AI-задач и датасетов с Solana-эскроу и автономным ai_judge."
     />
-    <meta name="twitter:image" content="https://ai-mesh-market.vercel.app/og.png?v=3" />
+    <meta name="twitter:image" content="https://ai-mesh-market.vercel.app/nexusai-share-card.png" />
     <meta name="twitter:image:alt" content="NexusAI — маркетплейс и AI Escrow" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "NexusAI",
+        "url": "https://ai-mesh-market.vercel.app/",
+        "description": "Маркетплейс AI-задач и датасетов с Solana-эскроу и автономным ai_judge.",
+        "image": "https://ai-mesh-market.vercel.app/nexusai-share-card.png"
+      }
+    </script>
   </head>
 
   <body>
