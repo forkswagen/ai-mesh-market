@@ -1,4 +1,4 @@
-import { apiBase } from "./env";
+import { apiUrl } from "./env";
 
 const STORAGE_KEY = "depai_access_token";
 
@@ -20,8 +20,7 @@ export async function ensureDepaiToken(): Promise<string | null> {
   const existing = getDepaiAccessToken();
   if (existing) return existing;
 
-  const base = apiBase();
-  const ch = await fetch(`${base}/api/v1/auth/challenge`, {
+  const ch = await fetch(apiUrl("/api/v1/auth/challenge"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ wallet: w }),
@@ -29,7 +28,7 @@ export async function ensureDepaiToken(): Promise<string | null> {
   if (!ch.ok) return null;
   const { challenge } = (await ch.json()) as { challenge: string };
 
-  const v = await fetch(`${base}/api/v1/auth/verify`, {
+  const v = await fetch(apiUrl("/api/v1/auth/verify"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
