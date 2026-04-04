@@ -16,7 +16,7 @@ import {
 
 const mainNav = [
   { title: "Обзор", url: "/", icon: LayoutDashboard },
-  { title: "Tracks", url: "/tasks", icon: ListTodo },
+  { title: "Tasks", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
   { title: "DePIN", url: "/compute", icon: Cpu },
   { title: "AI Агенты", url: "/agents", icon: Bot },

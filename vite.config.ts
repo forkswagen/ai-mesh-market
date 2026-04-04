@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // Локальный оркестратор server/ по умолчанию PORT=8787 (см. server/.env.example)
     proxy: {
       "/api": "http://127.0.0.1:8787",
       "/health": "http://127.0.0.1:8787",

@@ -34,3 +34,4 @@ test-ledger/
 wormhole-local
 
 server/data/
+server/.env

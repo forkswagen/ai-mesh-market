@@ -126,7 +126,27 @@ async function processDeal(body, res) {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, programId: process.env.PROGRAM_ID || "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg" });
+  const programId = process.env.PROGRAM_ID || "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg";
+  res.json({
+    status: "ok",
+    app: "depai-orchestrator",
+    env: process.env.NODE_ENV || "development",
+    ok: true,
+    programId,
+  });
+});
+
+/** Совместимость с фронтом depaiAuth + depai-backend: локальный мок (подпись не проверяется). */
+app.post("/api/v1/auth/challenge", (req, res) => {
+  const wallet = req.body?.wallet || "unknown";
+  res.json({ challenge: `nexus-local-challenge:${wallet}:${Date.now()}` });
+});
+
+app.post("/api/v1/auth/verify", (req, res) => {
+  res.json({
+    access_token: `local-orchestrator-token:${req.body?.wallet || "dev"}`,
+    token_type: "Bearer",
+  });
 });
 
 app.get("/api/deals", (_req, res) => {

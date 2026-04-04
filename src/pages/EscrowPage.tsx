@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play } from "lucide-react";
+import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
+import { fetchApiHealth } from "@/lib/api/health";
 import { toast } from "sonner";
 
 const steps = [
@@ -33,6 +34,12 @@ function stateBadge(state: string) {
 
 export default function EscrowPage() {
   const qc = useQueryClient();
+  const healthQ = useQuery({
+    queryKey: ["api", "health"],
+    queryFn: fetchApiHealth,
+    retry: 1,
+    staleTime: 15_000,
+  });
   const dealsQ = useQuery({
     queryKey: ["orchestrator", "deals"],
     queryFn: fetchDealsList,
@@ -42,7 +49,14 @@ export default function EscrowPage() {
   const demoM = useMutation({
     mutationFn: () => postDemoSeeded({}),
     onSuccess: (data) => {
-      toast.success(data.state === "settled" ? "Сделка закрыта on-chain (ai_judge)" : "Запрос выполнен");
+      if (data.state === "settled") {
+        toast.success("Сделка закрыта on-chain (ai_judge)");
+      } else if (data.state === "created" && data.reason) {
+        toast.success("Создана запись escrow в depai-backend");
+        toast.message(data.reason);
+      } else {
+        toast.success("Запрос выполнен");
+      }
       qc.invalidateQueries({ queryKey: ["orchestrator", "deals"] });
       if (data.signatures?.sigJudge) {
         toast.info(`ai_judge: ${data.signatures.sigJudge.slice(0, 16)}…`, {
@@ -59,19 +73,57 @@ export default function EscrowPage() {
         <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · NexusAI</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Agent economy: серверный оркул (LLM или эвристика) подписывает{" "}
-          <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. Оркестратор:{" "}
-          <code className="text-xs bg-muted px-1 rounded">server/</code> · контракт{" "}
+          <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. Локально: оркестратор{" "}
+          <code className="text-xs bg-muted px-1 rounded">server/ :8787</code> (или <code className="text-xs bg-muted px-1 rounded">depai-backend</code>). Контракт{" "}
           <span className="text-foreground/90">data_arbiter</span>
         </p>
+      </div>
+
+      <div
+        className={`surface p-3 flex flex-wrap items-center gap-2 text-sm border ${
+          healthQ.isError
+            ? "border-destructive/40 bg-destructive/5"
+            : healthQ.isSuccess
+              ? "border-green-500/25 bg-green-500/5"
+              : "border-border"
+        }`}
+      >
+        {healthQ.isLoading && (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground">Проверка оркестратора…</span>
+          </>
+        )}
+        {healthQ.isError && (
+          <>
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-destructive">
+              Нет <code className="bg-muted px-1 rounded">/health</code> — запусти из корня{" "}
+              <code className="bg-muted px-1 rounded">npm run dev:demo</code> или{" "}
+              <code className="bg-muted px-1 rounded">npm run server:dev</code>.{" "}
+              <span className="text-xs">{(healthQ.error as Error)?.message}</span>
+            </span>
+          </>
+        )}
+        {healthQ.isSuccess && healthQ.data && (
+          <>
+            <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+            <span className="text-foreground">
+              Оркестратор доступен: {healthQ.data.app} · <span className="text-muted-foreground">{healthQ.data.env}</span>
+            </span>
+          </>
+        )}
       </div>
 
       <div className="surface p-5 space-y-3 border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
           <h2 className="font-heading font-semibold text-foreground text-sm">Demo: полный цикл on-chain</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Запусти <code className="bg-muted px-1 rounded">cd server && npm run dev</code> и заполни{" "}
-            <code className="bg-muted px-1 rounded">server/.env</code> (три keypair + devnet SOL). В dev Vite проксирует{" "}
-            <code className="bg-muted px-1 rounded">/api</code> → 8787.
+            Запуск из корня: <code className="bg-muted px-1 rounded">npm run dev:demo</code> (или отдельно{" "}
+            <code className="bg-muted px-1 rounded">server/</code> + <code className="bg-muted px-1 rounded">npm run dev</code>).
+            Vite проксирует <code className="bg-muted px-1 rounded">/api</code> → <code className="bg-muted px-1 rounded">127.0.0.1:8787</code>.
+            Список сделок с локального оркестратора работает без JWT; <code className="bg-muted px-1 rounded">VITE_DEPAI_DEV_WALLET</code> в{" "}
+            <code className="bg-muted px-1 rounded">.env.local</code> — опционально для auth на depai-backend.
           </p>
         </div>
         <Button

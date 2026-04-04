@@ -1,7 +1,9 @@
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot, Loader2, Database, AlertCircle, CheckCircle2, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { fetchApiHealth } from "@/lib/api/health";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
 
 const stats = [
@@ -39,8 +41,74 @@ const activity = [
 ];
 
 export default function DashboardPage() {
+  const healthQ = useQuery({
+    queryKey: ["api", "health"],
+    queryFn: fetchApiHealth,
+    retry: 1,
+    staleTime: 30_000,
+  });
+
   return (
     <div className="p-6 space-y-6">
+      <div
+        className={`surface p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border ${
+          healthQ.isError ? "border-destructive/40 bg-destructive/5" : healthQ.isSuccess ? "border-green-500/25 bg-green-500/5" : "border-border"
+        }`}
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Бэкенд и БД (depai-backend)</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Главная страница показывает демо-цифры из UI. Живые данные escrow — в разделе{" "}
+              <Link to="/escrow" className="text-primary hover:underline">
+                AI Escrow
+              </Link>
+              . Локально: оркестратор <code className="bg-muted px-1 rounded">server/</code> на :8787, Vite проксирует{" "}
+              <code className="bg-muted px-1 rounded">/api</code> и <code className="bg-muted px-1 rounded">/health</code>.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 text-sm">
+          {healthQ.isLoading && (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-muted-foreground">Проверка…</span>
+            </>
+          )}
+          {healthQ.isError && (
+            <>
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <span className="text-destructive text-xs max-w-[220px]">Нет API (запусти server/, порт 8787)</span>
+            </>
+          )}
+          {healthQ.isSuccess && healthQ.data && (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="text-foreground/90 text-xs">
+                {healthQ.data.app} · <span className="text-muted-foreground">{healthQ.data.env}</span>
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="surface p-4 border border-primary/30 bg-primary/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Главное демо: AI Escrow</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Нужны <code className="bg-muted px-1 rounded">server/.env</code> с ключами и SOL на devnet. Запуск из корня:{" "}
+            <code className="bg-muted px-1 rounded">npm run dev:demo</code>.
+          </p>
+        </div>
+        <Button asChild className="shrink-0 gap-2">
+          <Link to="/escrow">
+            <Play className="h-4 w-4" />
+            Открыть демо
+          </Link>
+        </Button>
+      </div>
+
       <div className="surface p-4 border-primary/25 bg-primary/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">NexusAI · Agent Economy · AI-oracled escrow (Solana)</p>
@@ -57,7 +125,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="font-heading text-xl font-bold text-foreground">Обзор NexusAI</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tracks (подачи), DePIN/GPU, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
+            Tasks, DePIN/GPU, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
           </p>
         </div>
       </div>

@@ -18,7 +18,21 @@
 
 ### `GET /health`
 
-Проверка живости.
+Проверка живости. Ответ (совместим с фронтом `fetchApiHealth`):
+
+```json
+{
+  "status": "ok",
+  "app": "depai-orchestrator",
+  "env": "development",
+  "ok": true,
+  "programId": "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg"
+}
+```
+
+### `POST /api/v1/auth/challenge` · `POST /api/v1/auth/verify`
+
+Мок для локального оркестратора: те же пути, что у depai-backend, чтобы фронт с `VITE_DEPAI_DEV_WALLET` мог получить токен через [`depaiAuth`](../src/lib/api/depaiAuth.ts). Подпись **не проверяется** — только для dev.
 
 ### `GET /api/deals`
 
