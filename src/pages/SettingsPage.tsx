@@ -1,9 +1,18 @@
-import { Settings, Wallet, Shield, Bell, User } from "lucide-react";
+import { Wallet, Shield, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
+import { getSolanaRpcUrl } from "@/lib/solana/rpc";
+import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const w = useSolanaWallet();
+  const copyAddr = () => {
+    if (!w.address) return;
+    void navigator.clipboard.writeText(w.address);
+    toast.success("Адрес скопирован");
+  };
   return (
     <div className="p-6 max-w-3xl space-y-6">
       <h1 className="font-heading text-2xl font-bold text-foreground">Настройки · NexusAI</h1>
@@ -29,22 +38,55 @@ export default function SettingsPage() {
       </div>
 
       <div className="surface p-5 space-y-4">
-        <div className="flex items-center gap-3 mb-2">
-          <Wallet className="h-5 w-5 text-primary" />
-          <h2 className="font-heading font-semibold text-foreground">Кошелёк</h2>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground">Адрес</p>
-            <p className="text-sm font-mono text-foreground">0x7a3B4c5D6e7F8a9B0c1D2E3f4A5b6C7d8E9fE2</p>
+        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Wallet className="h-5 w-5 text-primary" />
+            <h2 className="font-heading font-semibold text-foreground">Кошелёк · Phantom</h2>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">Скопировать</Button>
+          <div className="flex gap-2">
+            {w.connected ? (
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => void w.disconnect()}>
+                Отключить
+              </Button>
+            ) : (
+              <Button size="sm" className="text-xs" disabled={w.connecting} onClick={() => void w.connect()}>
+                {w.connecting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Подключить"}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div><p className="text-xs text-muted-foreground mb-1">NXS</p><p className="font-heading text-lg font-bold text-foreground">1,250</p></div>
-          <div><p className="text-xs text-muted-foreground mb-1">USDT</p><p className="font-heading text-lg font-bold text-foreground">340</p></div>
-          <div><p className="text-xs text-muted-foreground mb-1">Staked</p><p className="font-heading text-lg font-bold text-primary">500 NXS</p></div>
+        <p className="text-xs text-muted-foreground">
+          RPC: <code className="bg-muted px-1 rounded break-all">{getSolanaRpcUrl()}</code> — задай <code className="bg-muted px-1 rounded">VITE_SOLANA_RPC_URL</code>{" "}
+          (по умолчанию devnet).
+        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">Адрес (Solana base58)</p>
+            <p className="text-sm font-mono text-foreground break-all">{w.address ?? "— не подключено —"}</p>
+          </div>
+          <Button variant="ghost" size="sm" className="text-xs shrink-0 text-muted-foreground" disabled={!w.address} onClick={copyAddr}>
+            Скопировать
+          </Button>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">SOL (нативный, по RPC)</p>
+            <p className="font-heading text-lg font-bold text-foreground">
+              {w.balanceLoading ? "…" : w.solBalance != null ? `${w.solBalance.toFixed(4)} SOL` : "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">NXS</p>
+            <p className="font-heading text-lg font-bold text-muted-foreground">Внутриигровая валюта (MVP UI)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Ончейн-токена NXS в этом репо нет — см. демо-цифры на дашборде.</p>
+          </div>
+        </div>
+        {w.devWalletPubkey && (
+          <p className="text-[11px] text-muted-foreground border-t border-border pt-3">
+            <span className="font-medium text-foreground">VITE_DEPAI_DEV_WALLET</span> (для JWT к оркестратору, не подменяет Phantom):{" "}
+            <span className="font-mono break-all">{w.devWalletPubkey}</span>
+          </p>
+        )}
       </div>
 
       <div className="surface p-5 space-y-3">

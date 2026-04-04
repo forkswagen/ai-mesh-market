@@ -2,8 +2,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Bell, Search, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
+import { truncateSolanaAddress } from "@/lib/solana/walletDisplay";
 
 export default function AppHeader() {
+  const w = useSolanaWallet();
   return (
     <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-40">
       <div className="flex items-center gap-3">
@@ -22,9 +25,19 @@ export default function AppHeader() {
           <Bell className="h-4 w-4" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
         </Button>
-        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-          <Wallet className="h-4 w-4" />
-          <span className="hidden sm:inline text-xs font-mono">0x7a3B...9fE2</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 text-muted-foreground hover:text-foreground max-w-[140px]"
+          title={w.address || undefined}
+          onClick={() => {
+            if (!w.connected) void w.connect();
+          }}
+        >
+          <Wallet className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline text-xs font-mono truncate">
+            {w.connected && w.address ? truncateSolanaAddress(w.address) : "Кошелёк"}
+          </span>
         </Button>
         <div className="w-8 h-8 rounded-full bg-secondary/20 border border-secondary/30 flex items-center justify-center">
           <span className="text-xs font-medium text-secondary">AI</span>

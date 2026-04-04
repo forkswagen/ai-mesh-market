@@ -1,5 +1,8 @@
-import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet, Cable } from "lucide-react";
+import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet, Cable, Loader2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { Button } from "@/components/ui/button";
+import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
+import { truncateSolanaAddress } from "@/lib/solana/walletDisplay";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +30,7 @@ const mainNav = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const w = useSolanaWallet();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -88,13 +92,58 @@ export function AppSidebar() {
         </SidebarMenu>
 
         {!collapsed && (
-          <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
-            <div className="flex items-center gap-2 mb-1">
-              <Wallet className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs text-muted-foreground">Кошелёк</span>
+          <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border space-y-2">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs text-muted-foreground">Solana · Phantom</span>
             </div>
-            <p className="text-xs text-foreground font-mono truncate">0x7a3B...9fE2</p>
-            <p className="text-xs text-primary font-medium mt-1">1,250 NXS</p>
+            {w.connected && w.address ? (
+              <>
+                <p className="text-xs text-foreground font-mono truncate" title={w.address}>
+                  {truncateSolanaAddress(w.address)}
+                </p>
+                <p className="text-xs font-medium text-primary">
+                  {w.balanceLoading ? (
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      SOL…
+                    </span>
+                  ) : w.solBalance != null ? (
+                    <>
+                      {w.solBalance.toFixed(4)} SOL
+                      <span className="block text-[10px] text-muted-foreground font-normal mt-0.5">
+                        сеть: см. VITE_SOLANA_RPC_URL (devnet)
+                      </span>
+                    </>
+                  ) : (
+                    "SOL — недоступно"
+                  )}
+                </p>
+                <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => void w.disconnect()}>
+                  Отключить
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Подключи Phantom для реального адреса и баланса SOL. NXS в демо — оффчейн-единица UI.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full h-7 text-xs"
+                  disabled={w.connecting}
+                  onClick={() => void w.connect()}
+                >
+                  {w.connecting ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : w.hasPhantom ? (
+                    "Подключить"
+                  ) : (
+                    "Нет Phantom"
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </SidebarFooter>
