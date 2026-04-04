@@ -4,6 +4,10 @@
 
 См. [docs/API_CONTRACT.md](../docs/API_CONTRACT.md) — тот же контракт можно реализовать в `depai-backend`.
 
+## Railway
+
+Корень сервиса в Railway = эта папка (`server/`). См. [railway.toml](railway.toml) и раздел в корневом [README.md](../README.md#бэкенд-на-railway).
+
 ## Запуск
 
 ```bash

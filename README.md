@@ -67,11 +67,23 @@ npm run dev
 ### Что сделать вручную в дашборде Vercel
 
 1. **Project → Settings → Environment Variables**
-2. Добавить **`VITE_API_BASE_URL`** = публичный URL оркестратора (например `https://…onrender.com`) **без** завершающего `/`.
+2. Добавить **`VITE_API_BASE_URL`** = публичный URL оркестратора (Railway / Render и т.д., например `https://….up.railway.app`) **без** завершающего `/`.
 3. Опционально: **`VITE_DEPAI_DEV_WALLET`** — публичный Solana-адрес (см. [.env.example](.env.example)).
 4. **Deployments → Redeploy** (переменные `VITE_*` вшиваются на **build**).
 
-### Что сделать на бэке (Render и т.д.)
+### Бэкенд на Railway
+
+1. [Railway](https://railway.app) → **New Project** → **Deploy from GitHub repo** → выбери `ai-mesh-market`.
+2. Добавь **сервис** из этого репо → в настройках сервиса **Settings → Root Directory** = **`server`** (важно: там лежат `package.json` и [`server/railway.toml`](server/railway.toml)).
+3. **Variables** (аналог `.env`, только в UI Railway) — все из [server/.env.example](server/.env.example):
+   - `SOLANA_RPC_URL`, `PROGRAM_ID`, `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON`
+   - **`VITE_DEV_ORIGIN`** = `https://ai-mesh-market.vercel.app` (или с запятой и локалкой — см. [server/.env.example](server/.env.example))
+   - `PORT` **не задавай** — Railway подставит сама; приложение уже читает `process.env.PORT`.
+4. После деплоя скопируй **публичный URL** (Generate Domain) и вставь в Vercel как **`VITE_API_BASE_URL`**, затем **Redeploy** фронта.
+
+Nixpacks соберёт `better-sqlite3` под Linux; задан **Node ≥ 20** в [`server/package.json`](server/package.json).
+
+### Что сделать на бэке (любой хостинг)
 
 В **Environment** задать **`VITE_DEV_ORIGIN`** так, чтобы в список CORS попал прод-фронт:
 

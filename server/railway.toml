@@ -1,0 +1,10 @@
+# Railway: при создании сервиса укажи Root Directory = server (корень этого файла).
+# https://docs.railway.app/guides/monorepo
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
