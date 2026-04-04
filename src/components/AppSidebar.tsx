@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { title: "Обзор", url: "/", icon: LayoutDashboard },
+  { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
   { title: "DePIN", url: "/compute", icon: Cpu },
@@ -55,7 +55,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/"}
+                      end={item.url === "/dashboard"}
                       className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
                       activeClassName="bg-sidebar-accent text-primary font-medium"
                     >
