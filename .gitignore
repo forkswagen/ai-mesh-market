@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Anchor / Solana
+target/
+.anchor/
+test-ledger/
+**/*.rs.bk
+
+# Local tunnel / misc
+.tmp-wormhole/
+wormhole-local

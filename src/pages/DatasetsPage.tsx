@@ -28,8 +28,10 @@ export default function DatasetsPage() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Маркетплейс датасетов</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-проверка качества, покупка одним кликом</p>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Маркетплейс датасетов · NexusAI</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            AI-проверка качества и сделки через Solana-эскроу (data_arbiter, devnet) — см. раздел Escrow
+          </p>
         </div>
         <Button className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm">
           + Опубликовать датасет

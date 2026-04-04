@@ -1,6 +1,8 @@
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Database, Cpu, Shield, Bot } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
 
 const stats = [
   { label: "Баланс", value: "1,250 NXS", change: "+12.5%", up: true, icon: Zap },
@@ -39,6 +41,27 @@ const activity = [
 export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6">
+      <div className="surface p-4 border-primary/25 bg-primary/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">NexusAI · on-chain dataset escrow</p>
+          <p className="text-xs text-muted-foreground mt-1 font-mono break-all">
+            data_arbiter (devnet): {DATA_ARBITER_PROGRAM_ID.toBase58()}
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="shrink-0">
+          <Link to="/escrow">Эскроу и контракт →</Link>
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <h1 className="font-heading text-xl font-bold text-foreground">Обзор NexusAI</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Задачи, датасеты, GPU, агенты — плюс Solana-эскроу с AI Judge для сделок с данными
+          </p>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (
@@ -63,8 +86,8 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 surface">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <h2 className="font-heading font-semibold text-foreground">Последние задачи</h2>
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
-              Все задачи →
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground" asChild>
+              <Link to="/tasks">Все задачи →</Link>
             </Button>
           </div>
           <div className="divide-y divide-border">

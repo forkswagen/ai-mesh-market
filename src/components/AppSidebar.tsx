@@ -1,7 +1,4 @@
-import { 
-  LayoutDashboard, ListTodo, Database, Shield, Cpu, 
-  Bot, Settings, ChevronLeft, Wallet, Bell 
-} from "lucide-react";
+import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -38,7 +35,10 @@ export function AppSidebar() {
             <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
           </div>
           {!collapsed && (
-            <span className="font-heading font-bold text-foreground text-lg">NexusAI</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-heading font-bold text-foreground text-lg leading-tight">NexusAI</span>
+              <span className="text-[10px] text-muted-foreground truncate">Маркетплейс · Solana escrow</span>
+            </div>
           )}
         </div>
       </SidebarHeader>
