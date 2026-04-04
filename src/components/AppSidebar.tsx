@@ -16,11 +16,11 @@ import {
 
 const mainNav = [
   { title: "Обзор", url: "/", icon: LayoutDashboard },
-  { title: "Задачи", url: "/tasks", icon: ListTodo },
+  { title: "Tracks", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
-  { title: "Вычисления", url: "/compute", icon: Cpu },
+  { title: "DePIN", url: "/compute", icon: Cpu },
   { title: "AI Агенты", url: "/agents", icon: Bot },
-  { title: "Escrow", url: "/escrow", icon: Shield },
+  { title: "AI Escrow", url: "/escrow", icon: Shield },
 ];
 
 export function AppSidebar() {
@@ -37,7 +37,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <span className="font-heading font-bold text-foreground text-lg leading-tight">NexusAI</span>
-              <span className="text-[10px] text-muted-foreground truncate">Маркетплейс · Solana escrow</span>
+              <span className="text-[10px] text-muted-foreground truncate">Agent Economy · AI Escrow (devnet)</span>
             </div>
           )}
         </div>

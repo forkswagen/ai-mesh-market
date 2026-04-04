@@ -1,28 +1,16 @@
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
-
-const escrows = [
-  { id: "#4421", task: "CAPTCHA пакет x1000", amount: "50 USDT", status: "locked", judge: "pending", time: "2ч назад" },
-  { id: "#4398", task: "TTS оценка RU-модель", amount: "120 USDT", status: "released", judge: "100%", time: "14 мин назад" },
-  { id: "#4385", task: "Аннотация мед. снимков", amount: "200 USDT", status: "locked", judge: "pending", time: "1д назад" },
-  { id: "#4372", task: "STT проверка EN/DE", amount: "80 USDT", status: "released", judge: "95%", time: "3ч назад" },
-  { id: "#4350", task: "Сегментация видео", amount: "350 USDT", status: "disputed", judge: "partial", time: "2д назад" },
-  { id: "#4305", task: "Cloudflare bypass x500", amount: "25 USDT", status: "refunded", judge: "rejected", time: "5д назад" },
-];
-
-const statusConfig: Record<string, { label: string; cls: string }> = {
-  locked: { label: "Заморожено", cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
-  released: { label: "Выплачено", cls: "bg-green-500/10 text-green-400 border-green-500/20" },
-  disputed: { label: "Спор", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
-  refunded: { label: "Возврат", cls: "bg-muted text-muted-foreground border-border" },
-};
+import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
+import { toast } from "sonner";
 
 const steps = [
   { icon: Lock, title: "Инициализация", desc: "initialize_escrow · PDA escrow[buyer,seller,deal_id]" },
   { icon: CheckCircle, title: "Депозит", desc: "deposit — покупатель блокирует SOL в PDA" },
-  { icon: Bot, title: "Датасет", desc: "submit_dataset_hash — хэш загрузки (off-chain файл)" },
-  { icon: Scale, title: "AI Judge", desc: "ai_judge(verdict, reason) — любой подписант, атомарный payout" },
+  { icon: Bot, title: "Датасет", desc: "submit_dataset_hash — хэш deliverable" },
+  { icon: Scale, title: "AI Oracle", desc: "сервер: LLM или эвристика → ai_judge (атомарный payout)" },
 ];
 
 const onChainIx = [
@@ -33,29 +21,79 @@ const onChainIx = [
   "release_to_seller / refund_buyer — только если задан judge_authority",
 ];
 
+function stateBadge(state: string) {
+  const map: Record<string, string> = {
+    settled: "bg-green-500/10 text-green-400 border-green-500/20",
+    chain_in_progress: "bg-primary/10 text-primary border-primary/20",
+    error: "bg-destructive/10 text-destructive border-destructive/20",
+    created: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  };
+  return map[state] || "bg-muted text-muted-foreground border-border";
+}
+
 export default function EscrowPage() {
+  const qc = useQueryClient();
+  const dealsQ = useQuery({
+    queryKey: ["orchestrator", "deals"],
+    queryFn: fetchDealsList,
+    retry: 1,
+  });
+
+  const demoM = useMutation({
+    mutationFn: () => postDemoSeeded({}),
+    onSuccess: (data) => {
+      toast.success(data.state === "settled" ? "Сделка закрыта on-chain (ai_judge)" : "Запрос выполнен");
+      qc.invalidateQueries({ queryKey: ["orchestrator", "deals"] });
+      if (data.signatures?.sigJudge) {
+        toast.info(`ai_judge: ${data.signatures.sigJudge.slice(0, 16)}…`, {
+          description: `https://solscan.io/tx/${data.signatures.sigJudge}?cluster=devnet`,
+        });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message || "Ошибка demo"),
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Escrow · NexusAI</h1>
+        <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · NexusAI</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          UI-маркетплейс + Solana-программа <span className="text-foreground/90">data_arbiter</span> (devnet): эскроу SOL → хэш датасета → автономный{" "}
-          <code className="text-xs bg-muted px-1 rounded">ai_judge</code>
+          Agent economy: серверный оркул (LLM или эвристика) подписывает{" "}
+          <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. Оркестратор:{" "}
+          <code className="text-xs bg-muted px-1 rounded">server/</code> · контракт{" "}
+          <span className="text-foreground/90">data_arbiter</span>
         </p>
+      </div>
+
+      <div className="surface p-5 space-y-3 border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-heading font-semibold text-foreground text-sm">Demo: полный цикл on-chain</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Запусти <code className="bg-muted px-1 rounded">cd server && npm run dev</code> и заполни{" "}
+            <code className="bg-muted px-1 rounded">server/.env</code> (три keypair + devnet SOL). В dev Vite проксирует{" "}
+            <code className="bg-muted px-1 rounded">/api</code> → 8787.
+          </p>
+        </div>
+        <Button
+          className="shrink-0 gap-2"
+          disabled={demoM.isPending}
+          onClick={() => demoM.mutate()}
+        >
+          {demoM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          Запустить seeded demo
+        </Button>
       </div>
 
       <div className="surface p-5 space-y-3 border-primary/20">
         <h2 className="font-heading font-semibold text-foreground text-sm">Program ID (devnet)</h2>
         <p className="text-xs font-mono break-all text-primary">{DATA_ARBITER_PROGRAM_ID.toBase58()}</p>
         <p className="text-xs text-muted-foreground">
-          Клиентские хелперы: <code className="bg-muted px-1 rounded">src/lib/solana/escrow.ts</code> · оффчейн проверки:{" "}
-          <code className="bg-muted px-1 rounded">src/lib/judge/datasetJudge.ts</code> · IDL после{" "}
-          <code className="bg-muted px-1 rounded">anchor build</code>
+          API контракт: <code className="bg-muted px-1 rounded">docs/API_CONTRACT.md</code> · переносимый в depai-backend
         </p>
       </div>
 
       <div className="surface p-5">
-        <h2 className="font-heading font-semibold text-foreground mb-4">Поток on-chain</h2>
+        <h2 className="font-heading font-semibold text-foreground mb-4">Поток</h2>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {steps.map((s, i) => (
             <div key={s.title} className="flex items-center gap-2 flex-shrink-0">
@@ -85,38 +123,61 @@ export default function EscrowPage() {
 
       <div className="surface overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-heading font-semibold text-foreground">Демо-транзакции (мок)</h2>
+          <h2 className="font-heading font-semibold text-foreground">Сделки оркестратора</h2>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <AlertTriangle className="h-3.5 w-3.5" />
-            Живые сделки — после подключения Anchor-клиента
+            GET /api/deals
           </div>
         </div>
-        <div className="grid grid-cols-[60px_1fr_100px_100px_90px_80px] gap-4 px-4 py-3 border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
-          <span>ID</span>
-          <span>Задача</span>
-          <span>Сумма</span>
-          <span>Статус</span>
-          <span>AI Judge</span>
-          <span>Время</span>
-        </div>
-        {escrows.map((e) => {
-          const st = statusConfig[e.status];
-          return (
-            <div
-              key={e.id}
-              className="grid grid-cols-[60px_1fr_100px_100px_90px_80px] gap-4 px-4 py-3.5 items-center border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
-            >
-              <span className="text-xs font-mono text-muted-foreground">{e.id}</span>
-              <span className="text-sm text-foreground truncate">{e.task}</span>
-              <span className="text-sm font-medium text-primary">{e.amount}</span>
-              <Badge variant="outline" className={`text-[10px] w-fit ${st.cls}`}>
-                {st.label}
-              </Badge>
-              <span className="text-xs text-muted-foreground">{e.judge}</span>
-              <span className="text-xs text-muted-foreground">{e.time}</span>
-            </div>
-          );
-        })}
+        {dealsQ.isLoading ? (
+          <div className="p-8 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : dealsQ.isError ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            Нет связи с API (запусти server или VITE_API_BASE_URL).{" "}
+            <span className="text-destructive">{(dealsQ.error as Error).message}</span>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {(dealsQ.data?.deals?.length ?? 0) === 0 ? (
+              <div className="p-6 text-sm text-muted-foreground">Пока нет записей — нажми «Запустить seeded demo».</div>
+            ) : (
+              dealsQ.data?.deals.map((d) => (
+                <div key={d.id} className="p-4 grid gap-2 sm:grid-cols-[1fr_auto] text-sm">
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-mono text-xs text-muted-foreground truncate">{d.id}</p>
+                    <p className="text-foreground">
+                      deal_id <span className="font-mono">{d.deal_id}</span> · {d.amount_lamports} lamports
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">buyer {d.buyer.slice(0, 8)}… · seller {d.seller.slice(0, 8)}…</p>
+                    {d.reason && (
+                      <p className="text-xs text-muted-foreground">
+                        Oracle: {d.verdict ? "release" : "refund"} — {d.reason}
+                      </p>
+                    )}
+                    {d.error && <p className="text-xs text-destructive">{d.error}</p>}
+                  </div>
+                  <div className="flex flex-col items-start sm:items-end gap-2">
+                    <Badge variant="outline" className={`text-[10px] ${stateBadge(d.state)}`}>
+                      {d.state}
+                    </Badge>
+                    {d.judge_sig && (
+                      <a
+                        href={`https://solscan.io/tx/${d.judge_sig}?cluster=devnet`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary hover:underline"
+                      >
+                        ai_judge tx →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

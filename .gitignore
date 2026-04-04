@@ -32,3 +32,5 @@ test-ledger/
 # Local tunnel / misc
 .tmp-wormhole/
 wormhole-local
+
+server/data/

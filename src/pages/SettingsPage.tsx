@@ -54,19 +54,27 @@ export default function SettingsPage() {
         </div>
         <p className="text-xs text-muted-foreground">Program ID (devnet), для интеграции кошелька и Anchor-клиента:</p>
         <p className="text-xs font-mono break-all text-primary">{DATA_ARBITER_PROGRAM_ID.toBase58()}</p>
+        <p className="text-xs text-muted-foreground pt-2">
+          Оркестратор демо: локально <code className="bg-muted px-1 rounded">server/</code> (или depai-backend). Фронт:{" "}
+          <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> или прокси <code className="bg-muted px-1 rounded">/api</code>.
+        </p>
       </div>
 
       <div className="surface p-5">
         <div className="flex items-center gap-3 mb-4">
           <Shield className="h-5 w-5 text-primary" />
-          <h2 className="font-heading font-semibold text-foreground">Privacy Mode</h2>
+          <h2 className="font-heading font-semibold text-foreground">Privacy / ZK (roadmap)</h2>
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-foreground">Глобальный Privacy Mode</p>
-            <p className="text-xs text-muted-foreground">E2E шифрование, данные не сохраняются</p>
+            <p className="text-sm text-foreground">Federated + privacy toggle</p>
+            <p className="text-xs text-muted-foreground">
+              В MVP UI-only; интеграция Spark/Flotta и ZK-пайплайн для оркула — следующий этап после escrow-demo
+            </p>
           </div>
-          <Button variant="outline" size="sm" className="text-xs">Включён</Button>
+          <Button variant="outline" size="sm" className="text-xs">
+            Скоро
+          </Button>
         </div>
       </div>
     </div>
