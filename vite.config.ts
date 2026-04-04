@@ -6,8 +6,11 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    // Use Vite default port to avoid clashing with another local app on :8080
+    // (e.g. a second Vite on the same machine: `localhost` can resolve to IPv6 first).
+    host: true,
+    port: 5173,
+    strictPort: true,
     hmr: {
       overlay: false,
     },

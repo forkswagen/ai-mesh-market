@@ -1,0 +1,19 @@
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+data_arbiter = "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg"
+
+[programs.devnet]
+data_arbiter = "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Devnet"
+wallet = "~/.config/solana/id.json"
+
+[toolchain]
+anchor_version = "0.30.1"
