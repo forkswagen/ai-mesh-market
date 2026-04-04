@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "server:dev": "npm run dev --prefix server",
     "dev:demo": "concurrently -n web,api -c cyan,magenta \"npm run dev\" \"npm run server:dev\"",
+    "soltoloka:db": "docker compose -f docker-compose.soltoloka.yml up -d",
+    "soltoloka:db:down": "docker compose -f docker-compose.soltoloka.yml down",
     "test": "vitest run",
     "test:watch": "vitest"
   },

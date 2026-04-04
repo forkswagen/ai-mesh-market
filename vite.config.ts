@@ -14,10 +14,19 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Локальный оркестратор server/ по умолчанию PORT=8787 (см. server/.env.example)
+    // Оркестратор escrow: server/ :8787. SolToloka FastAPI: :8000 через префикс /st (HTTP + WS).
     proxy: {
       "/api": "http://127.0.0.1:8787",
       "/health": "http://127.0.0.1:8787",
+      "/st": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => {
+          const p = path.replace(/^\/st/, "");
+          return p === "" ? "/" : p;
+        },
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

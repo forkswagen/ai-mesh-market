@@ -1,0 +1,27 @@
+--- a/app/main.py
++++ b/app/main.py
+@@ -28,10 +28,17 @@ app.add_middleware(
+ )
+ 
+ @app.on_event("startup")
+ async def startup_event():
+-    # In production, use Alembic for migrations
+-    # For now, create tables if not exists for quick testing (optional)
+-    pass
++    """В DEBUG поднимаем схему без Alembic (удобно для локальной связки с NexusAI)."""
++    if settings.DEBUG:
++        import app.models.user  # noqa: F401
++        import app.models.node  # noqa: F401
++        import app.models.task  # noqa: F401
++        import app.models.dataset  # noqa: F401
++        from app.models.base import Base
++        async with engine.begin() as conn:
++            await conn.run_sync(Base.metadata.create_all)
++        logger.info("DEBUG: SQLAlchemy create_all() — таблицы готовы")
+ 
+ @app.get("/")
+ async def root():
+@@ -108,5 +115,3 @@ app.include_router(compute.router, prefix=settings.API_V1_STR)
+ app.include_router(marketplace.router, prefix=settings.API_V1_STR)
+ 
+-import json # for websocket message handling

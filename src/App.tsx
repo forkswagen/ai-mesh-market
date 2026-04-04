@@ -12,6 +12,7 @@ import AgentsPage from "./pages/AgentsPage";
 import EscrowPage from "./pages/EscrowPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
+import SolTolokaPage from "./pages/SolTolokaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/compute" element={<ComputePage />} />
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/escrow" element={<EscrowPage />} />
+            <Route path="/soltoloka" element={<SolTolokaPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>

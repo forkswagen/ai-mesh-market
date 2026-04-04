@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet } from "lucide-react";
+import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet, Cable } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const mainNav = [
   { title: "DePIN", url: "/compute", icon: Cpu },
   { title: "AI Агенты", url: "/agents", icon: Bot },
   { title: "AI Escrow", url: "/escrow", icon: Shield },
+  { title: "SolToloka", url: "/soltoloka", icon: Cable },
 ];
 
 export function AppSidebar() {
