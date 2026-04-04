@@ -9,9 +9,16 @@ import { PublicKey } from "@solana/web3.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
-const origin = process.env.VITE_DEV_ORIGIN || "http://localhost:5173";
 
-app.use(cors({ origin: [origin, "http://127.0.0.1:5173"], credentials: true }));
+/** CORS: VITE_DEV_ORIGIN может быть несколько origin через запятую (локал + Vercel). */
+function corsOrigins() {
+  const raw = process.env.VITE_DEV_ORIGIN || "http://localhost:5173";
+  const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!list.includes("http://127.0.0.1:5173")) list.push("http://127.0.0.1:5173");
+  return [...new Set(list)];
+}
+
+app.use(cors({ origin: corsOrigins(), credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 
 function sha256hex(s) {
@@ -197,5 +204,5 @@ app.post("/api/deals/:id/oracle", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`depai-orchestrator http://localhost:${PORT} (cors ${origin})`);
+  console.log(`depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")})`);
 });

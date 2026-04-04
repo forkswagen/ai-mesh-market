@@ -60,6 +60,35 @@ npm run dev
 
 Опционально в **`.env.local`** задай `VITE_DEPAI_DEV_WALLET` для совместимости с auth-флоу на других бэкендах; локальный оркестратор отдаёт `GET /api/deals` и без JWT.
 
-## Деплой (Vercel)
+## Деплой (Vercel) — прод
 
-Фронт: `vercel.json` (build `dist/`, SPA fallback). Задай **VITE_API_BASE_URL** на хост оркестратора (Railway/Fly/Render и т.д.) и разреши CORS (`VITE_DEV_ORIGIN` / прод-домен в `server`).
+**Публичный фронт:** [https://ai-mesh-market.vercel.app](https://ai-mesh-market.vercel.app) · AI Escrow: [/escrow](https://ai-mesh-market.vercel.app/escrow).
+
+### Что сделать вручную в дашборде Vercel
+
+1. **Project → Settings → Environment Variables**
+2. Добавить **`VITE_API_BASE_URL`** = публичный URL оркестратора (например `https://…onrender.com`) **без** завершающего `/`.
+3. Опционально: **`VITE_DEPAI_DEV_WALLET`** — публичный Solana-адрес (см. [.env.example](.env.example)).
+4. **Deployments → Redeploy** (переменные `VITE_*` вшиваются на **build**).
+
+### Что сделать на бэке (Render и т.д.)
+
+В **Environment** задать **`VITE_DEV_ORIGIN`** так, чтобы в список CORS попал прод-фронт:
+
+- Минимум: `https://ai-mesh-market.vercel.app`
+- Либо несколько через **запятую**: `https://ai-mesh-market.vercel.app,http://localhost:5173` (см. [server/.env.example](server/.env.example))
+
+После смены env — перезапуск сервиса.
+
+Фронт: [`vercel.json`](vercel.json) (build `dist/`, SPA fallback).
+
+## Сдача хакатона (National Solana Hackathon by Decentrathon)
+
+- **Кейс:** 2 — AI + Blockchain (autonomous / AI-oracled escrow).
+- **Colosseum:** загрузить решение (в ТЗ: без сдачи на Colosseum работа не принимается).
+- **Форма Google:** [https://forms.gle/ZfKofXP5ymxW69o48](https://forms.gle/ZfKofXP5ymxW69o48)
+- **Дедлайн (по ТЗ):** до 23:59 **7 апреля 2026** (GMT+5).
+
+В описании укажи: ссылку на **GitHub**, **Program ID** (см. выше), URL фронта, кратко шаги из раздела «Главный сценарий» / прод выше.
+
+**Питч 3–5 минут:** черновой сценарий — [docs/PITCH_OUTLINE.md](docs/PITCH_OUTLINE.md).
