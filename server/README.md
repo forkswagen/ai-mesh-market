@@ -6,7 +6,7 @@
 
 ## Railway
 
-Корень сервиса в Railway = эта папка (`server/`). См. [railway.toml](railway.toml) и раздел в корневом [README.md](../README.md#бэкенд-на-railway).
+Корень сервиса в Railway = эта папка (`server/`). См. [railway.toml](railway.toml) (builder **RAILPACK**) и раздел в корневом [README.md](../README.md#бэкенд-на-railway). Если Railpack падает — проверь **Root Directory = server**; fallback — [Dockerfile](Dockerfile).
 
 ## Запуск
 

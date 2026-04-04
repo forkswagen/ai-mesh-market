@@ -74,14 +74,14 @@ npm run dev
 ### Бэкенд на Railway
 
 1. [Railway](https://railway.app) → **New Project** → **Deploy from GitHub repo** → выбери `ai-mesh-market`.
-2. Добавь **сервис** из этого репо → в настройках сервиса **Settings → Root Directory** = **`server`** (важно: там лежат `package.json` и [`server/railway.toml`](server/railway.toml)).
+2. Добавь **сервис** из этого репо → **Settings → Root Directory** = **`server`** (обязательно; иначе Railpack смотрит корень монорепо и падает с *Error creating build plan with Railpack*).
 3. **Variables** (аналог `.env`, только в UI Railway) — все из [server/.env.example](server/.env.example):
    - `SOLANA_RPC_URL`, `PROGRAM_ID`, `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON`
    - **`VITE_DEV_ORIGIN`** = `https://ai-mesh-market.vercel.app` (или с запятой и локалкой — см. [server/.env.example](server/.env.example))
    - `PORT` **не задавай** — Railway подставит сама; приложение уже читает `process.env.PORT`.
 4. После деплоя скопируй **публичный URL** (Generate Domain) и вставь в Vercel как **`VITE_API_BASE_URL`**, затем **Redeploy** фронта.
 
-Nixpacks соберёт `better-sqlite3` под Linux; задан **Node ≥ 20** в [`server/package.json`](server/package.json).
+В [`server/railway.toml`](server/railway.toml) указан **RAILPACK** (не `nixpacks`). Если сборка всё ещё падает — в логах **View logs**; запасной вариант: в настройках сервиса выставить **Dockerfile** и использовать [`server/Dockerfile`](server/Dockerfile) (сборка `better-sqlite3` с `g++`). Задан **Node ≥ 20** в [`server/package.json`](server/package.json).
 
 ### Что сделать на бэке (любой хостинг)
 
