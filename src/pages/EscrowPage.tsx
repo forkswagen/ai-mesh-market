@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
+import { useOrchestratorDealsWs } from "@/hooks/useOrchestratorDealsWs";
 import { toast } from "sonner";
 
 const steps = [
@@ -34,6 +35,7 @@ function stateBadge(state: string) {
 
 export default function EscrowPage() {
   const qc = useQueryClient();
+  useOrchestratorDealsWs(qc);
   const healthQ = useQuery({
     queryKey: ["api", "health"],
     queryFn: fetchApiHealth,

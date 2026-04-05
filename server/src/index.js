@@ -1,8 +1,10 @@
 import "dotenv/config";
+import http from "node:http";
 import express from "express";
 import cors from "cors";
 import { randomUUID, createHash } from "node:crypto";
 import { createDeal, patchDeal, getDeal, listDeals } from "./db.js";
+import { attachDealsWebSocket, broadcastDealsUpdate } from "./dealsWs.js";
 import { runOracle } from "./oracle.mjs";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
 import { PublicKey } from "@solana/web3.js";
@@ -61,6 +63,7 @@ async function processDeal(body, res) {
     state: "created",
     created_at: Date.now(),
   });
+  broadcastDealsUpdate();
 
   if (!runChain) {
     return res.status(201).json({ id, state: "created", expectedHashHex });
@@ -72,6 +75,7 @@ async function processDeal(body, res) {
 
   if (!buyerSec || !sellerSec || !oracleSec) {
     patchDeal(id, { state: "error", error: "Missing BUYER_SECRET_JSON / SELLER_SECRET_JSON / ORACLE_SECRET_JSON" });
+    broadcastDealsUpdate();
     return res.status(503).json({
       id,
       error: "Server keys not configured; set secrets in server/.env (see .env.example)",
@@ -84,6 +88,7 @@ async function processDeal(body, res) {
 
   if (buyerKp.publicKey.toBase58() !== buyerPublicKey || sellerKp.publicKey.toBase58() !== sellerPublicKey) {
     patchDeal(id, { state: "error", error: "Public keys do not match BUYER/SELLER secrets" });
+    broadcastDealsUpdate();
     return res.status(400).json({ error: "buyer/seller pubkeys must match server keypair secrets" });
   }
 
@@ -92,6 +97,7 @@ async function processDeal(body, res) {
 
   try {
     patchDeal(id, { state: "chain_in_progress" });
+    broadcastDealsUpdate();
     const oracleResult = await runOracle(deliverableText, process.env);
 
     const chain = await runFullChain({
@@ -117,6 +123,7 @@ async function processDeal(body, res) {
       reason: oracleResult.reason,
       error: null,
     });
+    broadcastDealsUpdate();
 
     return res.status(201).json({
       id,
@@ -128,6 +135,7 @@ async function processDeal(body, res) {
   } catch (e) {
     console.error(e);
     patchDeal(id, { state: "error", error: String(e.message || e) });
+    broadcastDealsUpdate();
     return res.status(500).json({ id, error: String(e.message || e) });
   }
 }
@@ -203,6 +211,8 @@ app.post("/api/deals/:id/oracle", (_req, res) => {
   res.status(501).json({ error: "Use POST /api/deals with runChain or POST /api/demo/seeded" });
 });
 
-app.listen(PORT, () => {
-  console.log(`depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")})`);
+const server = http.createServer(app);
+attachDealsWebSocket(server);
+server.listen(PORT, () => {
+  console.log(`depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")}) ws /ws`);
 });

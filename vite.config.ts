@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => ({
     proxy: {
       "/api": "http://127.0.0.1:8787",
       "/health": "http://127.0.0.1:8787",
+      "/ws": {
+        target: "http://127.0.0.1:8787",
+        ws: true,
+      },
       "/st": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
