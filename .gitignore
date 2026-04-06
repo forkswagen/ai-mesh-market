@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Cursor IDE
+.cursor/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -35,3 +38,7 @@ wormhole-local
 
 server/data/
 server/.env
+
+# Локальные клоны своих репо (источник правды на GitHub); при необходимости клонируй рядом.
+soltoloka-backend/
+soltoloka-agent/

@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
-  /** Публичный URL SolToloka FastAPI (прод). Локально пусто → префикс /st через Vite. */
+  /** Переопределение URL SolToloka (по умолчанию https://soltoloka-backend.vercel.app). */
   readonly VITE_SOLToloka_API_URL?: string;
   /** Solana RPC для баланса кошелька (по умолчанию devnet). */
   readonly VITE_SOLANA_RPC_URL?: string;

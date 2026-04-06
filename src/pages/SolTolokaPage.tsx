@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Cable, CheckCircle2, AlertCircle, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { soltolokaApiUrl } from "@/lib/api/soltoloka";
+import { soltolokaConnectionHint } from "@/lib/api/connectionHints";
+import { soltolokaApiUrl, soltolokaDocsUrl, soltolokaOrigin } from "@/lib/api/soltoloka";
 
 type SoltolokaRoot = { message?: string };
 type ComputeNode = {
@@ -43,11 +44,14 @@ export default function SolTolokaPage() {
           SolToloka
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Связка с Python-бэкендом SolToloka (ноды, WebSocket, матчмейкинг). Локально:{" "}
-          <code className="bg-muted px-1 rounded text-xs">npm run soltoloka:db</code>, затем в{" "}
-          <code className="bg-muted px-1 rounded text-xs">soltoloka-backend/</code>{" "}
-          <code className="bg-muted px-1 rounded text-xs">uvicorn</code> на :8000; фронт ходит через прокси{" "}
-          <code className="bg-muted px-1 rounded text-xs">/st → :8000</code>.
+          Ноды и статус SolToloka с публичного API. Документация:{" "}
+          <a className="text-primary hover:underline" href={soltolokaDocsUrl()} target="_blank" rel="noreferrer">
+            OpenAPI (Swagger)
+          </a>
+          . Текущая база:{" "}
+          <code className="bg-muted px-1 rounded text-xs break-all">{soltolokaOrigin()}</code>
+          {" — при необходимости переопредели через "}
+          <code className="bg-muted px-1 rounded text-xs">VITE_SOLToloka_API_URL</code>.
         </p>
       </div>
 
@@ -68,10 +72,7 @@ export default function SolTolokaPage() {
             <div>
               <p className="font-medium">SolToloka backend недоступен</p>
               <p className="text-xs mt-1 opacity-90">{(rootQ.error as Error).message}</p>
-              <p className="text-xs mt-2 text-muted-foreground">
-                Подними Postgres/Redis (<code className="bg-muted px-1 rounded">npm run soltoloka:db</code>), затем{" "}
-                <code className="bg-muted px-1 rounded">cd soltoloka-backend && uvicorn app.main:app --reload --port 8000</code>.
-              </p>
+              <p className="text-xs mt-2 text-muted-foreground">{soltolokaConnectionHint()}</p>
             </div>
           </div>
         )}
@@ -136,7 +137,10 @@ export default function SolTolokaPage() {
             soltoloka-agent <ExternalLink className="h-3 w-3" />
           </a>
         </p>
-        <p>Прод: задайте VITE_SOLToloka_API_URL и пересоберите фронт.</p>
+        <p>
+          Свой хост бэка — переменная <code className="bg-muted px-1 rounded text-xs">VITE_SOLToloka_API_URL</code> и
+          Redeploy; иначе используется публичный деплой по умолчанию.
+        </p>
       </div>
     </div>
   );

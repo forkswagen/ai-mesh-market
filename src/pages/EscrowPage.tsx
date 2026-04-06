@@ -3,6 +3,7 @@ import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
+import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
 import { useOrchestratorDealsWs } from "@/hooks/useOrchestratorDealsWs";
@@ -99,11 +100,9 @@ export default function EscrowPage() {
         {healthQ.isError && (
           <>
             <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-            <span className="text-destructive">
-              Нет <code className="bg-muted px-1 rounded">/health</code> — запусти из корня{" "}
-              <code className="bg-muted px-1 rounded">npm run dev:demo</code> или{" "}
-              <code className="bg-muted px-1 rounded">npm run server:dev</code>.{" "}
-              <span className="text-xs">{(healthQ.error as Error)?.message}</span>
+            <span className="text-destructive text-sm leading-snug">
+              Нет <code className="bg-muted px-1 rounded">/health</code>. {orchestratorConnectionHint()}{" "}
+              <span className="text-xs opacity-90">{(healthQ.error as Error)?.message}</span>
             </span>
           </>
         )}
@@ -188,9 +187,11 @@ export default function EscrowPage() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : dealsQ.isError ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            Нет связи с API (запусти server или VITE_API_BASE_URL).{" "}
-            <span className="text-destructive">{(dealsQ.error as Error).message}</span>
+          <div className="p-6 text-sm text-muted-foreground space-y-2">
+            <p>
+              Нет связи с <code className="bg-muted px-1 rounded">GET /api/deals</code>. {orchestratorConnectionHint()}
+            </p>
+            <p className="text-destructive text-xs">{(dealsQ.error as Error).message}</p>
           </div>
         ) : (
           <div className="divide-y divide-border">

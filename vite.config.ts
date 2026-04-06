@@ -14,22 +14,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Оркестратор escrow: server/ :8787. SolToloka FastAPI: :8000 через префикс /st (HTTP + WS).
+    // Оркестратор escrow (server/) :8787. SolToloka — с фронта на публичный URL (см. src/lib/api/soltoloka.ts).
     proxy: {
       "/api": "http://127.0.0.1:8787",
       "/health": "http://127.0.0.1:8787",
       "/ws": {
         target: "http://127.0.0.1:8787",
         ws: true,
-      },
-      "/st": {
-        target: "http://127.0.0.1:8000",
-        changeOrigin: true,
-        ws: true,
-        rewrite: (path) => {
-          const p = path.replace(/^\/st/, "");
-          return p === "" ? "/" : p;
-        },
       },
     },
   },

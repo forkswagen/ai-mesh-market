@@ -19,7 +19,15 @@ npm install
 npm run dev
 ```
 
-В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite проксирует `/api`, `/health` и **`/ws`** (WebSocket списка сделок) на оркестратор **:8787** по умолчанию ([`vite.config.ts`](vite.config.ts)).
+В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite проксирует `/api`, `/health` и **`/ws`** на оркестратор **:8787** ([`vite.config.ts`](vite.config.ts)). **SolToloka (HTTP):** фронт ходит на публичный **`https://soltoloka-backend.vercel.app`** (или `VITE_SOLToloka_API_URL`); Swagger: [soltoloka-backend.vercel.app/docs](https://soltoloka-backend.vercel.app/docs).
+
+### SolToloka: связка фронт · бэк · агент
+
+| Компонент | Что настроить |
+|-----------|----------------|
+| **Фронт** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | Уже дергает API по [`soltoloka.ts`](src/lib/api/soltoloka.ts). Для своего инстанса — `VITE_SOLToloka_API_URL` в Vercel / `.env.local`. |
+| **Бэк** ([`forkswagen/soltoloka-backend`](https://github.com/forkswagen/soltoloka-backend)) | Postgres, Redis, `.env`, `uvicorn`. Ноды: **POST `/api/v1/compute/register`** (JWT). WebSocket: **`/api/v1/ws/connect/{node_id}`** — при старте бэка путь пишется в лог. Для **агентов** надёжнее хост с нормальным **wss** (Railway/VM), не serverless. |
+| **Агент** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | Клон рядом с монорепо или отдельно. `.env` из **`.env.example`**: **`BACKEND_WS_URL`**, **`NODE_ID`**, **`LM_STUDIO_URL`**. Запуск: `python src/main.py`. README в репозитории агента. |
 
 ## Оркестратор (демо-бэкенд) · `server/`
 
@@ -70,8 +78,9 @@ npm run dev
 
 1. **Project → Settings → Environment Variables**
 2. Добавить **`VITE_API_BASE_URL`** = публичный URL оркестратора (Railway / Render и т.д., например `https://….up.railway.app`) **без** завершающего `/`.
-3. Опционально: **`VITE_DEPAI_DEV_WALLET`** — публичный Solana-адрес (см. [.env.example](.env.example)).
-4. **Deployments → Redeploy** (переменные `VITE_*` вшиваются на **build**).
+3. **SolToloka (`/soltoloka`):** по умолчанию в бандле уже **`https://soltoloka-backend.vercel.app`**. Укажи **`VITE_SOLToloka_API_URL`** только если нужен другой инстанс. CORS на бэке должен допускать origin фронта.
+4. Опционально: **`VITE_DEPAI_DEV_WALLET`** — публичный Solana-адрес (см. [.env.example](.env.example)).
+5. **Deployments → Redeploy** (переменные `VITE_*` вшиваются на **build**).
 
 ### Бэкенд на Railway
 

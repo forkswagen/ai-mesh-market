@@ -3,6 +3,7 @@ import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot, Loader2, Da
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
 import { fetchApiHealth } from "@/lib/api/health";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
 
@@ -58,7 +59,7 @@ export default function DashboardPage() {
         <div className="flex items-start gap-3 min-w-0">
           <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">Бэкенд и БД (depai-backend)</p>
+            <p className="text-sm font-medium text-foreground">Оркестратор escrow (Node server/)</p>
             <p className="text-xs text-muted-foreground mt-1">
               Главная страница показывает демо-цифры из UI. Живые данные escrow — в разделе{" "}
               <Link to="/escrow" className="text-primary hover:underline">
@@ -78,8 +79,10 @@ export default function DashboardPage() {
           )}
           {healthQ.isError && (
             <>
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive text-xs max-w-[220px]">Нет API (запусти server/, порт 8787)</span>
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-destructive text-xs max-w-[min(100%,320px)] leading-snug">
+                Нет связи с оркестратором. {orchestratorConnectionHint()}
+              </span>
             </>
           )}
           {healthQ.isSuccess && healthQ.data && (
