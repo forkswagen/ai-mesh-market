@@ -9,12 +9,11 @@ const UPSTREAM = (process.env.SOLTOLOKA_UPSTREAM_URL || "https://soltoloka-backe
 
 const PREFIX = "/api/soltoloka-proxy";
 
-export default async function handler(req, res) {
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
-  }
-
+/**
+ * Путь после префикса прокси к upstream (начинается с /).
+ * На Vercel иногда req.url — полный путь, иногда без монтирования — добираем из req.query.slug ([...slug]).
+ */
+function proxyRestAndSearch(req) {
   const rawUrl = req.url || "/";
   let pathname;
   let search;
@@ -23,16 +22,35 @@ export default async function handler(req, res) {
     pathname = u.pathname;
     search = u.search;
   } catch {
-    res.status(400).end("Bad URL");
+    return { rest: "/", search: "" };
+  }
+
+  if (pathname.startsWith(PREFIX)) {
+    const rest = pathname.slice(PREFIX.length) || "/";
+    return { rest, search };
+  }
+
+  const q = req.query?.slug;
+  if (q != null) {
+    const tail = Array.isArray(q) ? q.join("/") : String(q);
+    const rest = tail ? `/${tail.replace(/^\//, "")}` : "/";
+    return { rest, search };
+  }
+
+  if (pathname && pathname !== "/") {
+    return { rest: pathname.startsWith("/") ? pathname : `/${pathname}`, search };
+  }
+
+  return { rest: "/", search };
+}
+
+export default async function handler(req, res) {
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
     return;
   }
 
-  if (!pathname.startsWith(PREFIX)) {
-    res.status(404).end("Not found");
-    return;
-  }
-
-  const rest = pathname.slice(PREFIX.length) || "/";
+  const { rest, search } = proxyRestAndSearch(req);
   const target = `${UPSTREAM}${rest}${search}`;
 
   const headers = {};

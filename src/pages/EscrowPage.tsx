@@ -17,7 +17,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
-import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
+import { missingViteApiBaseUrlMessage } from "@/lib/api/connectionHints";
+import { isOrchestratorOriginConfigured, wrongOrchestratorUrlMessage } from "@/lib/api/backendOrigin";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
 import { fetchOracleWorkersStats } from "@/lib/api/oracleWorkers";
@@ -56,24 +57,31 @@ function stateBadge(state: string) {
 
 export default function EscrowPage() {
   const qc = useQueryClient();
-  useOrchestratorDealsWs(qc);
-  const agentWs = useAgentChannelWs(true);
+  const wrongRpcUrl = wrongOrchestratorUrlMessage();
+  const orchestratorReady = isOrchestratorOriginConfigured();
+  const configBannerText = wrongRpcUrl || (!orchestratorReady ? missingViteApiBaseUrlMessage() : "");
+
+  useOrchestratorDealsWs(qc, orchestratorReady);
+  const agentWs = useAgentChannelWs(orchestratorReady);
   const [oracleModel, setOracleModel] = useState("");
   const [oracleWorkerSessionId, setOracleWorkerSessionId] = useState("");
   const healthQ = useQuery({
     queryKey: ["api", "health"],
     queryFn: fetchApiHealth,
+    enabled: orchestratorReady,
     retry: 1,
     staleTime: 15_000,
   });
   const dealsQ = useQuery({
     queryKey: ["orchestrator", "deals"],
     queryFn: fetchDealsList,
+    enabled: orchestratorReady,
     retry: 1,
   });
   const oracleHostsQ = useQuery({
     queryKey: ["orchestrator", "oracle-workers"],
     queryFn: fetchOracleWorkersStats,
+    enabled: orchestratorReady,
     refetchInterval: 4_000,
     staleTime: 2_000,
     retry: 1,
@@ -120,31 +128,55 @@ export default function EscrowPage() {
         </p>
       </div>
 
+      {configBannerText && (
+        <div
+          className={`surface p-4 flex gap-3 text-sm border ${
+            wrongRpcUrl
+              ? "border-amber-500/40 bg-amber-500/5 text-foreground"
+              : "border-amber-500/35 bg-amber-500/5 text-foreground"
+          }`}
+        >
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">{configBannerText}</p>
+        </div>
+      )}
+
       <div
         className={`surface p-3 flex flex-wrap items-center gap-2 text-sm border ${
-          healthQ.isError
-            ? "border-destructive/40 bg-destructive/5"
-            : healthQ.isSuccess
-              ? "border-green-500/25 bg-green-500/5"
-              : "border-border"
+          !orchestratorReady
+            ? "border-border bg-muted/20"
+            : healthQ.isError
+              ? "border-destructive/40 bg-destructive/5"
+              : healthQ.isSuccess
+                ? "border-green-500/25 bg-green-500/5"
+                : "border-border"
         }`}
       >
-        {healthQ.isLoading && (
+        {!orchestratorReady && (
+          <>
+            <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground text-sm">
+              <code className="bg-muted px-1 rounded">/health</code> не запрашивается, пока не задан корректный URL Node-оркестратора — см. блок выше (
+              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> = деплой <code className="bg-muted px-1 rounded">server/</code>
+              , не Solana RPC).
+            </span>
+          </>
+        )}
+        {orchestratorReady && healthQ.isLoading && (
           <>
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">Проверка /health…</span>
           </>
         )}
-        {healthQ.isError && (
+        {orchestratorReady && healthQ.isError && (
           <>
             <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
             <span className="text-destructive text-sm leading-snug">
-              Нет <code className="bg-muted px-1 rounded">/health</code>. {orchestratorConnectionHint()}{" "}
-              <span className="text-xs opacity-90">{(healthQ.error as Error)?.message}</span>
+              Нет ответа <code className="bg-muted px-1 rounded">/health</code>. {(healthQ.error as Error)?.message}
             </span>
           </>
         )}
-        {healthQ.isSuccess && healthQ.data && (
+        {orchestratorReady && healthQ.isSuccess && healthQ.data && (
           <>
             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
             <span className="text-foreground">
@@ -274,7 +306,7 @@ export default function EscrowPage() {
         </div>
         <Button
           className="shrink-0 gap-2"
-          disabled={demoM.isPending}
+          disabled={demoM.isPending || !orchestratorReady}
           onClick={() => demoM.mutate()}
         >
           {demoM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -327,7 +359,11 @@ export default function EscrowPage() {
             GET /api/deals
           </div>
         </div>
-        {dealsQ.isLoading ? (
+        {!orchestratorReady ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            Список сделок запрашивается у оркестратора. Настройте URL (см. жёлтый блок выше), затем Redeploy.
+          </div>
+        ) : dealsQ.isLoading ? (
           <div className="p-8 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
