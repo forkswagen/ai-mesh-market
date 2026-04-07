@@ -31,6 +31,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/datasets" element={<DatasetsPage />} />
+              <Route path="/compute" element={<Navigate to="/soltoloka" replace />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/escrow" element={<EscrowPage />} />
               <Route path="/soltoloka" element={<SolTolokaPage />} />
