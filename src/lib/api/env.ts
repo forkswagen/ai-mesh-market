@@ -1,13 +1,13 @@
 import { getBackendOrigin } from "@/lib/api/backendOrigin";
 
-/** Базовый URL бэкенда (тот же, что SolToloka FastAPI на Vercel). */
+/** Базовый URL Node-оркестратор (`server/`). */
 export function apiBase(): string {
   return getBackendOrigin();
 }
 
 /**
- * Абсолютный URL для fetch (REST, /health и т.д.).
- * Всегда хостится на `getBackendOrigin()`, без зависимости от прокси Vite.
+ * Абсолютный URL для fetch (REST, /health, /api/deals, …).
+ * В dev по умолчанию `http://127.0.0.1:8787` без переменных.
  */
 export function apiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -15,6 +15,6 @@ export function apiUrl(path: string): string {
   try {
     return new URL(normalized, `${base.replace(/\/$/, "")}/`).href;
   } catch {
-    throw new Error(`Не удалось собрать URL для пути ${path}. Проверь VITE_API_BASE_URL / VITE_SOLToloka_API_URL.`);
+    throw new Error(`Не удалось собрать URL для пути ${path}. Проверьте VITE_API_BASE_URL.`);
   }
 }

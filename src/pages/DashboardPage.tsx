@@ -1,10 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Zap, Shield, Bot, Loader2, Database, AlertCircle, CheckCircle2, Play } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  Zap,
+  Shield,
+  Bot,
+  Loader2,
+  Database,
+  AlertCircle,
+  CheckCircle2,
+  Play,
+  Server,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
 import { fetchApiHealth } from "@/lib/api/health";
+import { fetchOracleWorkersStats } from "@/lib/api/oracleWorkers";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
 
 const stats = [
@@ -48,6 +62,14 @@ export default function DashboardPage() {
     retry: 1,
     staleTime: 30_000,
   });
+  const oracleHostsQ = useQuery({
+    queryKey: ["orchestrator", "oracle-workers"],
+    queryFn: fetchOracleWorkersStats,
+    enabled: healthQ.isSuccess,
+    refetchInterval: 8_000,
+    staleTime: 4_000,
+    retry: 1,
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -59,11 +81,12 @@ export default function DashboardPage() {
         <div className="flex items-start gap-3 min-w-0">
           <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">API (SolToloka backend · Vercel)</p>
+            <p className="text-sm font-medium text-foreground">API (Node-оркестратор)</p>
             <p className="text-xs text-muted-foreground mt-1">
               Главная — демо-цифры в UI. Проверка <code className="bg-muted px-1 rounded">/health</code> идёт на{" "}
-              <strong className="text-foreground/90">forkswagen/soltoloka-backend</strong> (
-              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> / дефолт в коде). Живой escrow —{" "}
+              <strong className="text-foreground/90">server/</strong> (
+              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code>, в dev — <code className="bg-muted px-1 rounded">:8787</code>
+              ). Живой escrow —{" "}
               <Link to="/escrow" className="text-primary hover:underline">
                 AI Escrow
               </Link>
@@ -98,6 +121,25 @@ export default function DashboardPage() {
                   </>
                 ) : null}
               </span>
+              {oracleHostsQ.isSuccess && oracleHostsQ.data && (
+                <Link
+                  to="/escrow"
+                  title="Процессы oracle-worker с LM Studio (GET /api/agent/oracle-workers)"
+                  className="inline-flex ml-1"
+                >
+                  <Badge
+                    variant="outline"
+                    className={
+                      oracleHostsQ.data.connected > 0
+                        ? "border-cyan-500/35 text-cyan-400 gap-1 text-[10px] h-6 cursor-pointer hover:bg-muted/50"
+                        : "border-border text-muted-foreground gap-1 text-[10px] h-6 cursor-pointer hover:bg-muted/50"
+                    }
+                  >
+                    <Server className="h-3 w-3" />
+                    LM-хосты: {oracleHostsQ.data.connected}
+                  </Badge>
+                </Link>
+              )}
             </>
           )}
         </div>

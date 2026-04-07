@@ -1,11 +1,14 @@
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocketServer } from "ws";
 import { listDeals } from "./db.js";
 import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
+import { registerOracleWorker, handleOracleWorkerMessage } from "./oracleWorkerPool.js";
 
 /** @type {WebSocketServer | null} */
 let dealsWss = null;
 /** @type {WebSocketServer | null} */
 let agentWss = null;
+/** @type {WebSocketServer | null} */
+let oracleWorkerWss = null;
 let pingInterval = null;
 let agentPollInterval = null;
 let upgradeListenerAttached = false;
@@ -62,7 +65,8 @@ async function broadcastAgentSnapshots() {
 }
 
 /**
- * Подключает WebSocket: /ws (сделки), /ws/agent (LM Studio → список моделей + refresh).
+ * Подключает WebSocket: /ws (сделки), /ws/agent (LM Studio → список моделей + refresh),
+ * /ws/oracle-worker (локальные агенты — оценки escrow round-robin).
  * @param {import("http").Server} server
  */
 export function attachDealsWebSocket(server) {
@@ -71,6 +75,7 @@ export function attachDealsWebSocket(server) {
 
   dealsWss = new WebSocketServer({ noServer: true });
   agentWss = new WebSocketServer({ noServer: true });
+  oracleWorkerWss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
     const path = pathname(req);
@@ -83,6 +88,12 @@ export function attachDealsWebSocket(server) {
     if (path === "/ws/agent") {
       agentWss.handleUpgrade(req, socket, head, (ws) => {
         agentWss.emit("connection", ws, req);
+      });
+      return;
+    }
+    if (path === "/ws/oracle-worker") {
+      oracleWorkerWss.handleUpgrade(req, socket, head, (ws) => {
+        oracleWorkerWss.emit("connection", ws, req);
       });
       return;
     }
@@ -121,8 +132,27 @@ export function attachDealsWebSocket(server) {
     });
   });
 
+  oracleWorkerWss.on("connection", (ws, req) => {
+    ws.isAlive = true;
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
+    let workerLabel = "worker";
+    try {
+      const u = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+      const q = u.searchParams.get("id");
+      if (q) workerLabel = q.slice(0, 64);
+    } catch {
+      /* ignore */
+    }
+    registerOracleWorker(ws, workerLabel);
+    ws.on("message", (raw) => {
+      handleOracleWorkerMessage(ws, raw);
+    });
+  });
+
   pingInterval = setInterval(() => {
-    for (const wss of [dealsWss, agentWss]) {
+    for (const wss of [dealsWss, agentWss, oracleWorkerWss]) {
       for (const ws of wss.clients) {
         if (ws.isAlive === false) {
           ws.terminate();
@@ -177,5 +207,9 @@ export function closeDealsWebSocket() {
   if (agentWss) {
     agentWss.close();
     agentWss = null;
+  }
+  if (oracleWorkerWss) {
+    oracleWorkerWss.close();
+    oracleWorkerWss = null;
   }
 }

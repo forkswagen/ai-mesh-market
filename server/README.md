@@ -41,4 +41,16 @@ npm run dev
 
 ## LLM oracle
 
-Опционально: `ORACLE_LLM_URL` (OpenAI-compatible), `ORACLE_LLM_MODEL`, `ORACLE_LLM_API_KEY`. Иначе используется эвристика (JSONL) в `src/heuristicJudge.js`.
+1. **Локальные воркеры (приоритет):** WebSocket **`/ws/oracle-worker`**. Запусти на каждой машине с LM Studio:
+
+   ```bash
+   npm run oracle-worker
+   ```
+
+   Переменные: `ORACLE_WORKER_WS_URL`, `ORACLE_WORKER_ID`, на воркере — `LM_STUDIO_BASE_URL` / `ORACLE_LLM_MODEL`. Балансировка: `ORACLE_WORKER_STRATEGY=round_robin` или `random`. Отключить воркеров: `ORACLE_USE_AGENT_WORKERS=0`.
+
+2. **LM на сервере:** `ORACLE_LLM_URL`, `ORACLE_LLM_MODEL`, `ORACLE_LLM_API_KEY` или `LM_STUDIO_BASE_URL`.
+
+3. Иначе — эвристика в `src/heuristicJudge.js`.
+
+Статус очереди: `GET /api/agent/oracle-workers`.

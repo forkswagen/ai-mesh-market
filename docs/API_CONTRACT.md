@@ -2,7 +2,7 @@
 
 Совместимо с отдельным [`depai-backend`](https://github.com/forkswagen/depai-backend): те же пути и модели можно реализовать там или проксировать сюда.
 
-**Base URL:** `http://localhost:8787` (локальный оркестратор в `server/`) или `VITE_API_BASE_URL` на фронте.
+**Base URL:** Node-оркестратор `server/` — локально `http://localhost:8787`, на фронте задаётся **`VITE_API_BASE_URL`** (в dev без переменной используется `http://127.0.0.1:8787`).
 
 ## Маппинг `deal_id` ↔ on-chain
 
@@ -13,6 +13,13 @@
 
 - В демо по умолчанию — **ключ оркула на сервере** (`ORACLE_SECRET_JSON`), хранится только в `.env`, не в браузере.
 - Для продакшена: HSM / отдельный сервис / ограничение доступа к эндпоинту.
+
+## Очередь оракула на локальных LM (агенты)
+
+1. Процессы **`npm run oracle-worker --prefix server`** подключаются к **`WS /ws/oracle-worker`** (опционально `?id=my-node`).
+2. Оркестратор рассылает **`oracle_eval`** `{ jobId, deliverableText, model, temperature }`; воркер отвечает **`oracle_result`** `{ jobId, ok, verdict?, reason?, error? }` после вызова своего LM Studio.
+3. Выбор воркера: **`ORACLE_WORKER_STRATEGY=round_robin`** (по умолчанию) среди свободных подключений или **`random`**. Если воркеров нет, истек таймаут (`ORACLE_WORKER_TIMEOUT_MS`) или ошибка — используется LM на сервере (`LM_STUDIO_BASE_URL` / `ORACLE_LLM_URL`) или эвристика.
+4. **`GET /api/agent/oracle-workers`** — число подключённых и занятых воркеров.
 
 ## Эндпоинты
 

@@ -1,4 +1,4 @@
-import { orchestratorApiUrl } from "@/lib/api/backendOrigin";
+import { apiUrl } from "@/lib/api/env";
 
 export type PlatformTaskDto = {
   id: string;
@@ -20,7 +20,7 @@ export type CreatePlatformTaskBody = {
 
 export async function listPlatformTasks(limit = 100): Promise<PlatformTaskDto[]> {
   const params = new URLSearchParams({ limit: String(limit) });
-  const res = await fetch(`${orchestratorApiUrl("/api/tasks")}?${params}`);
+  const res = await fetch(`${apiUrl("/api/tasks")}?${params}`);
   if (!res.ok) {
     const t = await res.text();
     throw new Error(t || res.statusText);
@@ -30,7 +30,7 @@ export async function listPlatformTasks(limit = 100): Promise<PlatformTaskDto[]>
 }
 
 export async function createPlatformTask(body: CreatePlatformTaskBody): Promise<PlatformTaskDto> {
-  const res = await fetch(orchestratorApiUrl("/api/tasks"), {
+  const res = await fetch(apiUrl("/api/tasks"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -46,7 +46,7 @@ export async function patchPlatformTaskStatus(
   id: string,
   status: "open" | "in_progress" | "done",
 ): Promise<{ ok: boolean; task: PlatformTaskDto | null }> {
-  const res = await fetch(orchestratorApiUrl(`/api/tasks/${encodeURIComponent(id)}`), {
+  const res = await fetch(apiUrl(`/api/tasks/${encodeURIComponent(id)}`), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),

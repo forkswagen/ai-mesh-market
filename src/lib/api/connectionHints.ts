@@ -1,12 +1,13 @@
-import { getBackendOrigin } from "@/lib/api/backendOrigin";
+import { getBackendOrigin, getSoltolokaApiOrigin } from "@/lib/api/backendOrigin";
 
-/** Подсказка при ошибках REST к бэкенду (SolToloka FastAPI). */
+/** Подсказка при ошибках к Node-оркестратору (escrow, tasks, health). */
 export function orchestratorConnectionHint(): string {
   const base = getBackendOrigin();
-  return `Проверь ${base} (GET /health, маршруты /api/…). На бэкенде в CORS разрешите origin фронта. Другой хост: VITE_API_BASE_URL или VITE_SOLToloka_API_URL в env сборки и Redeploy.`;
+  return `Проверьте оркестратор ${base} (GET /health). На сервере в CORS укажите origin фронта (VITE_DEV_ORIGIN). В проде задайте VITE_API_BASE_URL на URL деплоя server/ и пересоберите фронт.`;
 }
 
-/** @deprecated то же назначение — единый бэкенд SolToloka. */
+/** Страница SolToloka ходит в отдельный FastAPI (не оркестратор). */
 export function soltolokaConnectionHint(): string {
-  return orchestratorConnectionHint();
+  const base = getSoltolokaApiOrigin();
+  return `Проверьте ${base}. Свой инстанс: VITE_SOLToloka_API_URL в env сборки. Оркестратор escrow: VITE_API_BASE_URL.`;
 }

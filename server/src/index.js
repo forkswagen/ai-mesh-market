@@ -1,16 +1,22 @@
 import "dotenv/config";
 import http from "node:http";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import { randomUUID, createHash } from "node:crypto";
 import { createDeal, patchDeal, getDeal, listDeals, dbDriver } from "./db.js";
 import { attachDealsWebSocket, broadcastDealsUpdate } from "./dealsWs.js";
+import { getOracleWorkerStats } from "./oracleWorkerPool.js";
 import { runOracle } from "./oracle.mjs";
 import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
 import { PublicKey } from "@solana/web3.js";
 import { attachPlatformTaskRoutes } from "./platformTasks.js";
 import { fetchHuggingFaceDatasets, fetchKaggleDatasets } from "./datasetsHub.js";
+
+/** Абсолютный каталог `server/src` — в /health (dev) чтобы убедиться, какой файл реально запущен на :PORT */
+const SERVER_SRC_DIR = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
@@ -179,6 +185,11 @@ async function processDeal(body, res) {
   }
 }
 
+/** Подключённые воркеры оракула (WebSocket /ws/oracle-worker) для round-robin escrow. */
+app.get("/api/agent/oracle-workers", (_req, res) => {
+  res.json({ ok: true, ...getOracleWorkerStats() });
+});
+
 /** Список моделей LM Studio (agent) — фронт не ходит в LM Studio напрямую. */
 app.get("/api/agent/models", async (_req, res) => {
   try {
@@ -209,14 +220,20 @@ app.post("/api/agent/oracle", async (req, res) => {
 
 app.get("/health", (_req, res) => {
   const programId = process.env.PROGRAM_ID || "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg";
-  res.json({
+  const payload = {
     status: "ok",
     app: "depai-orchestrator",
     env: process.env.NODE_ENV || "development",
     ok: true,
     programId,
     db: dbDriver(),
-  });
+    /** Есть в этом процессе маршрут GET /api/agent/oracle-workers (если false — запущена старая/другая копия server/). */
+    hasOracleWorkerStatsRoute: true,
+  };
+  if (process.env.NODE_ENV !== "production") {
+    payload.serverSrcDir = SERVER_SRC_DIR;
+  }
+  res.json(payload);
 });
 
 /** Совместимость с фронтом depaiAuth + depai-backend: локальный мок (подпись не проверяется). */
@@ -284,6 +301,6 @@ const server = http.createServer(app);
 attachDealsWebSocket(server);
 server.listen(PORT, () => {
   console.log(
-    `depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")}) ws /ws /ws/agent`,
+    `depai-orchestrator ${SERVER_SRC_DIR} http://localhost:${PORT} (cors ${corsOrigins().join(", ")}) ws /ws /ws/agent /ws/oracle-worker`,
   );
 });

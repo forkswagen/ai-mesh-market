@@ -19,23 +19,21 @@ npm install
 npm run dev
 ```
 
-В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). REST и **`/health`** идут на **единый бэкенд SolToloka** — по умолчанию **`https://soltoloka-backend.vercel.app`** ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)); при необходимости прокси в [`vite.config.ts`](vite.config.ts) указывает туда же. Swagger: [soltoloka-backend.vercel.app/docs](https://soltoloka-backend.vercel.app/docs).
+В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). REST, **`/health`**, escrow и задачи идут на **Node-оркестратор** (`server/`) — по умолчанию **`http://127.0.0.1:8787`** при `npm run server:dev` ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)). Прокси Vite в [`vite.config.ts`](vite.config.ts) тоже смотрит на этот порт. Страница **SolToloka** по желанию ходит в отдельный FastAPI (`VITE_SOLToloka_API_URL` или публичный демо-URL в коде).
 
 ### SolToloka: связка фронт · бэк · агент
 
 | Компонент | Что настроить |
 |-----------|----------------|
-| **Фронт** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | Уже дергает API по [`soltoloka.ts`](src/lib/api/soltoloka.ts). Для своего инстанса — `VITE_SOLToloka_API_URL` в Vercel / `.env.local`. |
+| **Фронт** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | Только эта страница: API по [`soltoloka.ts`](src/lib/api/soltoloka.ts). Свой инстанс — **`VITE_SOLToloka_API_URL`**. Остальной фронт (`/escrow`, `/tasks`, health) — **`VITE_API_BASE_URL`** → оркестратор. |
 | **Бэк** ([`forkswagen/soltoloka-backend`](https://github.com/forkswagen/soltoloka-backend)) | Postgres, Redis, `.env`, `uvicorn`. Ноды: **POST `/api/v1/compute/register`** (JWT). WebSocket: **`/api/v1/ws/connect/{node_id}`** — при старте бэка путь пишется в лог. Для **агентов** надёжнее хост с нормальным **wss** (Railway/VM), не serverless. |
 | **Агент** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | Один репо: воркер **`python src/main.py`** и демо-настройка LM/backend — **`streamlit run streamlit_app/app.py`** (хост/порт LM Studio, WS бэка, `NODE_ID`, запись в `.env`). Запросы к локальным LLM пользователей идут **только** как фронт → бэк → WS → агент → LM Studio. |
 
-## Бэкенд (прод): [forkswagen/soltoloka-backend](https://github.com/forkswagen/soltoloka-backend) · Vercel
+## Бэкенд (прод): Node-оркестратор `server/`
 
-Целевой API для фронта — **SolToloka FastAPI** (деплой **`https://soltoloka-backend.vercel.app`**). Один репозиторий, один хост для REST, **`/soltoloka`** и остальных вызовов через [`apiUrl` / `getBackendOrigin`](src/lib/api/backendOrigin.ts).
+Целевой API для фронта (escrow, tasks, LM, WebSocket) — **деплой [`server/`](server/)**. Задайте **`VITE_API_BASE_URL`** на этот URL (без `/` в конце); в CORS оркестратора укажите **`VITE_DEV_ORIGIN`** = origin фронта.
 
-Переопределение URL: **`VITE_API_BASE_URL`** или **`VITE_SOLToloka_API_URL`** (без `/` в конце). На FastAPI в CORS добавьте origin фронта (например `https://ai-mesh-market.vercel.app`).
-
-Ручки вроде **`/api/deals`**, **`POST /api/demo/seeded`**, **`/ws/agent`** сейчас реализованы в **Node-оркестраторе** этого монорепо (`server/`). Если на Vercel нужен только soltoloka-backend, перенесите эти маршруты туда или поднимайте `server/` локально для escrow-demo.
+**SolToloka FastAPI** ([forkswagen/soltoloka-backend](https://github.com/forkswagen/soltoloka-backend)) опционален: только страница **`/soltoloka`**, переменная **`VITE_SOLToloka_API_URL`** (или дефолт демо-хоста в коде).
 
 ## Опционально: оркестратор escrow · `server/` (Node)
 
@@ -46,7 +44,7 @@ cd server && npm install && npm run dev
 npm run dev   # из корня, параллельно
 ```
 
-**WebSocket / LM Studio:** ориентированы на `server/`. При работе только через soltoloka-backend каналы могут быть недоступны, пока не реализованы на FastAPI.
+**WebSocket / LM Studio / oracle-worker:** реализованы в `server/` (`/ws`, `/ws/agent`, `/ws/oracle-worker`).
 
 ### Главный сценарий (около 5 минут)
 
@@ -66,7 +64,7 @@ npm run dev   # из корня, параллельно
 
 **Troubleshooting**
 
-- Нет ответа `/health` — проверь доступность soltoloka-backend (или `VITE_API_BASE_URL`), CORS и путь `/health` на FastAPI.
+- Нет ответа `/health` — подними `server/` на :8787 или задай `VITE_API_BASE_URL` на деплой оркестратора; проверь CORS (`VITE_DEV_ORIGIN` на сервере).
 - **503** и про ключи в seeded demo — не реализовано на выбранном бэкенде или не заполнен `server/.env` при локальном Node-оркестраторе.
 - Ошибка on-chain / RPC — devnet, балансы, `VITE_SOLANA_RPC_URL` / `SOLANA_RPC_URL` в `server/.env` для локального сценария.
 
@@ -74,25 +72,25 @@ npm run dev   # из корня, параллельно
 
 ## Деплой (Vercel) — прод
 
-**Фронт:** [https://ai-mesh-market.vercel.app](https://ai-mesh-market.vercel.app) · **Бэкенд:** [soltoloka-backend.vercel.app](https://soltoloka-backend.vercel.app) (тот же репозиторий, что и для SolToloka).
+**Фронт:** [https://ai-mesh-market.vercel.app](https://ai-mesh-market.vercel.app) · **Оркестратор:** свой деплой `server/` (Railway и т.д.); **SolToloka** — опционально отдельный FastAPI.
 
 ### Фронт (этот репозиторий → Vercel)
 
 1. **Project → Settings → Environment Variables**
-2. Опционально **`VITE_API_BASE_URL`** / **`VITE_SOLToloka_API_URL`** — если инстанс бэкенда не `https://soltoloka-backend.vercel.app`.
-3. Страница **Tasks (Verbitto)** ходит в **SolToloka FastAPI**: `GET/POST /api/v1/verbitto/offchain-tasks`, WebSocket `.../api/v1/ws/verbitto-tasks`. Нужна таблица `verbitto_offchain_tasks` в БД бэкенда (см. `soltoloka-backend/migrations/verbitto_offchain_tasks.sql` или `DEBUG=true` + create_all). Опционально **`VITE_VERBITTO_PROGRAM_ID`** для PDA в UI.
-4. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** и др. — см. [.env.example](.env.example).
+2. **`VITE_API_BASE_URL`** — URL деплоя Node-оркестратора (`server/`), обязателен для escrow/tasks в проде.
+3. Опционально **`VITE_SOLToloka_API_URL`** — только для страницы `/soltoloka`.
+4. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** — см. [.env.example](.env.example).
 5. **Redeploy** после смены `VITE_*` (вшиваются в **build**).
 
 Сборка: [`vercel.json`](vercel.json) (`dist/`, SPA fallback).
 
-### Бэкенд (soltoloka-backend → Vercel)
+### Бэкенд: Node `server/` (Railway / VPS / локально)
 
-Отдельный проект Vercel из [**forkswagen/soltoloka-backend**](https://github.com/forkswagen/soltoloka-backend). В CORS FastAPI укажите origin фронта (`https://ai-mesh-market.vercel.app`, локальный `http://localhost:5173` и т.д.).
+Для escrow, задач и WebSocket задеплойте [`server/`](server/) (Root Directory **`server`**, [server/.env.example](server/.env.example), **`VITE_DEV_ORIGIN`** в CORS). На фронте задайте **`VITE_API_BASE_URL`** на этот URL.
 
-### Опционально: Node `server/` на Railway
+### Опционально: SolToloka FastAPI (только `/soltoloka`)
 
-Если нужны без изменений ручки **`/api/deals`**, LM Studio и WebSocket из монорепо — задеплойте [`server/`](server/) (Root Directory **`server`**, см. [server/.env.example](server/.env.example), **`VITE_DEV_ORIGIN`** для CORS) и тогда задайте **`VITE_API_BASE_URL`** на этот URL вместо soltoloka-backend.
+Отдельный деплой [**forkswagen/soltoloka-backend**](https://github.com/forkswagen/soltoloka-backend) и **`VITE_SOLToloka_API_URL`** на фронте, если нужна страница compute-нод.
 
 ## Сдача хакатона (National Solana Hackathon by Decentrathon)
 

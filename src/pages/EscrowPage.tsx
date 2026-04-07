@@ -1,12 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Lock,
+  CheckCircle,
+  Bot,
+  Scale,
+  AlertTriangle,
+  ArrowRight,
+  Loader2,
+  Play,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Server,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
 import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
+import { fetchOracleWorkersStats } from "@/lib/api/oracleWorkers";
 import { useOrchestratorDealsWs } from "@/hooks/useOrchestratorDealsWs";
 import { useAgentChannelWs } from "@/hooks/useAgentChannelWs";
 import { toast } from "sonner";
@@ -15,7 +29,11 @@ const steps = [
   { icon: Lock, title: "Инициализация", desc: "initialize_escrow · PDA escrow[buyer,seller,deal_id]" },
   { icon: CheckCircle, title: "Депозит", desc: "deposit — покупатель блокирует SOL в PDA" },
   { icon: Bot, title: "Датасет", desc: "submit_dataset_hash — хэш deliverable" },
-  { icon: Scale, title: "AI Oracle", desc: "сервер: LLM или эвристика → ai_judge (атомарный payout)" },
+  {
+    icon: Scale,
+    title: "AI Oracle",
+    desc: "приоритет: воркеры /ws/oracle-worker (round-robin по локальным LM), иначе LM сервера → ai_judge",
+  },
 ];
 
 const onChainIx = [
@@ -52,6 +70,13 @@ export default function EscrowPage() {
     queryFn: fetchDealsList,
     retry: 1,
   });
+  const oracleHostsQ = useQuery({
+    queryKey: ["orchestrator", "oracle-workers"],
+    queryFn: fetchOracleWorkersStats,
+    refetchInterval: 4_000,
+    staleTime: 2_000,
+    retry: 1,
+  });
 
   const demoM = useMutation({
     mutationFn: () =>
@@ -82,10 +107,10 @@ export default function EscrowPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · Escora</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Agent economy: оркул подписывает <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. REST по
-          умолчанию — <strong className="text-foreground/90">soltoloka-backend</strong> на Vercel; сценарии{" "}
-          <code className="text-xs bg-muted px-1 rounded">/api/deals</code>, WebSocket и LM Studio нужно поддерживать там или
-          поднимать опциональный <code className="text-xs bg-muted px-1 rounded">server/</code> из монорепо. Программа{" "}
+          Agent economy: оркул подписывает <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. REST и
+          WebSocket по умолчанию — <strong className="text-foreground/90">Node-оркестратор</strong>{" "}
+          <code className="text-xs bg-muted px-1 rounded">server/</code> (в dev <code className="text-xs bg-muted px-1 rounded">:8787</code>
+          , в проде задайте <code className="text-xs bg-muted px-1 rounded">VITE_API_BASE_URL</code>). Программа{" "}
           <span className="text-foreground/90">data_arbiter</span>
         </p>
       </div>
@@ -145,16 +170,49 @@ export default function EscrowPage() {
               <p className="text-xs font-mono break-all text-muted-foreground">LM: {agentWs.snapshot.baseUrl}</p>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Badge variant="outline" className={agentWs.connected ? "border-green-500/40 text-green-400" : ""}>
               WS agent {agentWs.connected ? "online" : "…"}
             </Badge>
+            {oracleHostsQ.isSuccess && oracleHostsQ.data && (
+              <Badge
+                variant="outline"
+                title={
+                  oracleHostsQ.data.workerIds.length
+                    ? oracleHostsQ.data.workerIds.join("\n")
+                    : "Запуск на хосте: npm run oracle-worker --prefix server"
+                }
+                className={
+                  oracleHostsQ.data.connected > 0
+                    ? "border-cyan-500/40 text-cyan-400 gap-1"
+                    : "border-border text-muted-foreground gap-1"
+                }
+              >
+                <Server className="h-3 w-3" />
+                Хостов LM: {oracleHostsQ.data.connected}
+                {oracleHostsQ.data.busy > 0 ? ` · ${oracleHostsQ.data.busy} занято` : ""}
+              </Badge>
+            )}
+            {oracleHostsQ.isError && (
+              <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px]">
+                Хосты: нет данных
+              </Badge>
+            )}
             <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => agentWs.refresh()}>
               <RefreshCw className="h-3.5 w-3.5" />
               Обновить модели
             </Button>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground leading-snug flex items-start gap-2">
+          <Server className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+          <span>
+            Подключённые <strong className="text-foreground/90">хостовые машины</strong> с LM Studio (процесс{" "}
+            <code className="bg-muted px-1 rounded">oracle-worker</code>, аналог связки soltoloka-agent → оркестратор): канал{" "}
+            <code className="bg-muted px-1 rounded">/ws/oracle-worker</code>, счётчик обновляется каждые ~4 с (
+            <code className="bg-muted px-1 rounded">GET /api/agent/oracle-workers</code>).
+          </span>
+        </p>
         {agentWs.snapshot?.error && (
           <p className="text-xs text-destructive leading-snug">{agentWs.snapshot.error}</p>
         )}
@@ -183,10 +241,9 @@ export default function EscrowPage() {
         <div className="min-w-0">
           <h2 className="font-heading font-semibold text-foreground text-sm">Demo: полный цикл on-chain</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Кнопка работает, если на выбранном бэкенде реализованы{" "}
-            <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> и ключи (как в монорепо{" "}
-            <code className="bg-muted px-1 rounded">server/</code>). Иначе поднимите локально{" "}
-            <code className="bg-muted px-1 rounded">npm run dev:demo</code> из корня или перенесите ручки в soltoloka-backend.
+            Нужны <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> и ключи в{" "}
+            <code className="bg-muted px-1 rounded">server/.env</code>. Запуск из корня:{" "}
+            <code className="bg-muted px-1 rounded">npm run dev:demo</code> (Vite + оркестратор).
           </p>
         </div>
         <Button

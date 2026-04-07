@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, ExternalLink, ListTodo, RefreshCw } from "lucide-react";
+import { Clock, ListTodo, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,124 +23,84 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
-import { getBackendOrigin, getBackendWsBaseUrl } from "@/lib/api/backendOrigin";
-import {
-  createVerbittoOffchainTask,
-  listVerbittoOffchainTasks,
-  type VerbittoOffchainTaskDto,
-} from "@/lib/api/verbitto";
-import { VERBITTO_TASK_CATEGORY_LABELS, getVerbittoProgramId } from "@/lib/verbitto/constants";
-import { verbittoPlatformPda } from "@/lib/verbitto/pda";
-import { sha256Utf8Hex } from "@/lib/verbitto/hash";
-import { solscanAccountUrl } from "@/lib/solana/rpc";
+import { getBackendOrigin } from "@/lib/api/backendOrigin";
+import { createPlatformTask, listPlatformTasks, patchPlatformTaskStatus, type PlatformTaskDto } from "@/lib/api/tasks";
+import { TASK_CATEGORY_LABELS } from "@/lib/tasks/categories";
 import { toast } from "sonner";
 
-const CATEGORY_FILTER = ["Все", ...Object.keys(VERBITTO_TASK_CATEGORY_LABELS).map(String)] as const;
+const CATEGORY_FILTER = ["Все", ...Object.keys(TASK_CATEGORY_LABELS).map(String)] as const;
 
-function categoryLabel(cat: number | null): string {
-  if (cat == null) return "—";
-  return VERBITTO_TASK_CATEGORY_LABELS[cat] ?? `#${cat}`;
+function categoryLabel(cat: number): string {
+  return TASK_CATEGORY_LABELS[cat] ?? `#${cat}`;
 }
 
-function shortenPk(s: string, left = 6, right = 4): string {
-  if (s.length <= left + right + 1) return s;
-  return `${s.slice(0, left)}…${s.slice(-right)}`;
+function statusBadgeClass(status: string): string {
+  if (status === "done") return "border-green-500/30 text-green-400 bg-green-500/5";
+  if (status === "in_progress") return "border-primary/30 text-primary bg-primary/5";
+  return "border-border text-muted-foreground";
 }
 
 export default function TasksPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("Все");
   const [createOpen, setCreateOpen] = useState(false);
-  const [vbTitle, setVbTitle] = useState("");
-  const [vbDescription, setVbDescription] = useState("");
-  const [vbCategory, setVbCategory] = useState<string>("0");
-  const [vbSubmitting, setVbSubmitting] = useState(false);
-  const [vbLast, setVbLast] = useState<{ id: string; descriptionHashHex: string } | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<string>("0");
+  const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
   const { connected, address, connect } = useSolanaWallet();
-  const verbittoProgram = getVerbittoProgramId();
-  const platformPda = verbittoProgram ? verbittoPlatformPda(verbittoProgram)[0].toBase58() : null;
   const apiBase = getBackendOrigin();
 
   const tasksQuery = useQuery({
-    queryKey: ["verbitto-offchain-tasks", apiBase],
-    queryFn: () => listVerbittoOffchainTasks(200),
+    queryKey: ["platform-tasks", apiBase],
+    queryFn: () => listPlatformTasks(200),
     staleTime: 15_000,
   });
 
-  useEffect(() => {
-    const wsBase = getBackendWsBaseUrl().replace(/\/$/, "");
-    const url = `${wsBase}/api/v1/ws/verbitto-tasks`;
-    let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(url);
-      ws.onmessage = (ev) => {
-        try {
-          const msg = JSON.parse(ev.data as string) as { type?: string };
-          if (msg.type === "verbitto_tasks_updated") {
-            void queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks", apiBase] });
-          }
-        } catch {
-          /* ignore */
-        }
-      };
-      ws.onerror = () => {
-        /* Vercel serverless может не держать WS — список всё равно доступен по REST */
-      };
-    } catch {
-      /* ignore */
-    }
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        try {
-          ws.close();
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-  }, [apiBase, queryClient]);
-
-  const rows: VerbittoOffchainTaskDto[] = tasksQuery.data ?? [];
-  const filtered: VerbittoOffchainTaskDto[] =
+  const rows: PlatformTaskDto[] = tasksQuery.data ?? [];
+  const filtered: PlatformTaskDto[] =
     categoryFilter === "Все"
       ? rows
-      : rows.filter((t) => t.taskCategory === Number(categoryFilter));
+      : rows.filter((t) => t.category === Number(categoryFilter));
 
-  async function submitVerbittoOffchain() {
-    if (!connected || !address) {
-      toast.error("Подключите кошелёк", { description: "Нужен creator для записи в БД бэкенда." });
-      void connect();
+  async function submitTask() {
+    if (!title.trim()) {
+      toast.error("Нужен заголовок");
       return;
     }
-    if (!vbDescription.trim()) {
-      toast.error("Добавьте описание задачи");
+    if (!description.trim()) {
+      toast.error("Нужно описание");
       return;
     }
-    setVbSubmitting(true);
-    setVbLast(null);
+    setSubmitting(true);
     try {
-      const cat = Number(vbCategory);
-      const res = await createVerbittoOffchainTask({
-        creatorPublicKey: address,
-        title: vbTitle.trim() || undefined,
-        description: vbDescription.trim(),
-        taskCategory: Number.isInteger(cat) ? cat : undefined,
+      const cat = Number(category);
+      await createPlatformTask({
+        title: title.trim(),
+        description: description.trim(),
+        category: Number.isInteger(cat) && cat >= 0 && cat <= 6 ? cat : 0,
+        createdBy: connected && address ? address : null,
+        status: "open",
       });
-      const localHash = await sha256Utf8Hex(vbDescription.trim());
-      if (localHash !== res.descriptionHashHex) {
-        console.warn("[Verbitto] client/server hash mismatch", localHash, res.descriptionHashHex);
-      }
-      setVbLast({ id: res.id, descriptionHashHex: res.descriptionHashHex });
-      toast.success("Задача сохранена", {
-        description: "Данные в Postgres бэкенда; подписчики WS получат обновление.",
-      });
-      setVbTitle("");
-      setVbDescription("");
-      await queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks", apiBase] });
+      toast.success("Задача создана", { description: "Сохранено в БД оркестратора." });
+      setTitle("");
+      setDescription("");
+      setCreateOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
-      setVbSubmitting(false);
+      setSubmitting(false);
+    }
+  }
+
+  async function setTaskStatus(id: string, status: "open" | "in_progress" | "done") {
+    try {
+      await patchPlatformTaskStatus(id, status);
+      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] });
+      toast.success("Статус обновлён");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Ошибка");
     }
   }
 
@@ -148,12 +108,11 @@ export default function TasksPage() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Задачи Verbitto</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Задачи</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Таблица <code className="text-[10px]">verbitto_offchain_tasks</code> в БД{" "}
-            <strong>SolToloka backend</strong> (FastAPI). Хэш описания для инструкции{" "}
-            <code className="text-[10px]">create_task</code> на чейне. Обновления рассылаются по WebSocket{" "}
-            <code className="text-[10px]">/api/v1/ws/verbitto-tasks</code>.
+            Офчейн-задачи маркетплейса в SQLite/Postgres оркестратора:{" "}
+            <code className="text-[10px] bg-muted px-1 rounded">GET/POST /api/tasks</code>,{" "}
+            <code className="text-[10px] bg-muted px-1 rounded">PATCH /api/tasks/:id</code>.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -163,7 +122,7 @@ export default function TasksPage() {
             size="sm"
             className="text-xs"
             disabled={tasksQuery.isFetching}
-            onClick={() => void queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks", apiBase] })}
+            onClick={() => void queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] })}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${tasksQuery.isFetching ? "animate-spin" : ""}`} />
             Обновить
@@ -179,13 +138,12 @@ export default function TasksPage() {
       </div>
 
       <Alert>
-        <AlertTitle className="text-sm">Backend API</AlertTitle>
+        <AlertTitle className="text-sm">Оркестратор</AlertTitle>
         <AlertDescription>
           <span className="font-mono text-xs break-all">{apiBase}</span>
           <p className="text-xs text-muted-foreground mt-2">
-            Убедитесь, что в Postgres применена миграция{" "}
-            <code className="text-[10px]">migrations/verbitto_offchain_tasks.sql</code> (или включён DEBUG с
-            create_all).
+            Миграция таблицы: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. В dev:{" "}
+            <code className="text-[10px]">npm run server:dev</code> на порту 8787.
           </p>
         </AlertDescription>
       </Alert>
@@ -193,45 +151,41 @@ export default function TasksPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Новая задача (→ БД бэкенда)</DialogTitle>
-            <DialogDescription>
-              Описание и SHA-256 сохраняются на сервере. Транзакцию{" "}
-              <code className="text-xs">create_task</code> подписывает кошелёк отдельно (Anchor / IDL).
-            </DialogDescription>
+            <DialogTitle>Новая задача</DialogTitle>
+            <DialogDescription>Данные пишутся в БД Node-оркестратора (.env с DATABASE_URL).</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             {!connected && (
-              <p className="text-sm text-amber-600 dark:text-amber-400">
-                Подключите Phantom — в БД пишется ваш публичный ключ как создатель.
+              <p className="text-sm text-muted-foreground">
+                Кошелёк опционален. Можно подключить Phantom — тогда{" "}
+                <code className="text-[10px]">createdBy</code> заполнится автоматически.
+                <Button type="button" variant="link" className="h-auto p-0 ml-1 text-xs" onClick={() => void connect()}>
+                  Подключить
+                </Button>
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="vb-title">Заголовок (опционально)</Label>
-              <Input
-                id="vb-title"
-                value={vbTitle}
-                onChange={(e) => setVbTitle(e.target.value)}
-                placeholder="Краткое название"
-              />
+              <Label htmlFor="task-title">Заголовок</Label>
+              <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Кратко" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="vb-desc">Описание (входит в хэш)</Label>
+              <Label htmlFor="task-desc">Описание</Label>
               <Textarea
-                id="vb-desc"
-                value={vbDescription}
-                onChange={(e) => setVbDescription(e.target.value)}
-                placeholder="Текст для SHA-256, как в документации Verbitto…"
+                id="task-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Детали задачи"
                 className="min-h-[120px]"
               />
             </div>
             <div className="space-y-2">
               <Label>Категория</Label>
-              <Select value={vbCategory} onValueChange={setVbCategory}>
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Категория" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(VERBITTO_TASK_CATEGORY_LABELS).map(([n, label]) => (
+                  {Object.entries(TASK_CATEGORY_LABELS).map(([n, label]) => (
                     <SelectItem key={n} value={n}>
                       {n}: {label}
                     </SelectItem>
@@ -239,35 +193,13 @@ export default function TasksPage() {
                 </SelectContent>
               </Select>
             </div>
-            {platformPda && (
-              <p className="text-xs text-muted-foreground break-all">
-                Platform PDA (сверьте с IDL): {platformPda}
-              </p>
-            )}
-            {!verbittoProgram && (
-              <p className="text-xs text-muted-foreground">
-                Опционально: <code className="text-[10px]">VITE_VERBITTO_PROGRAM_ID</code> для отображения PDA.
-              </p>
-            )}
-            {vbLast && (
-              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-1">
-                <div>
-                  <span className="text-muted-foreground">id:</span>{" "}
-                  <span className="font-mono break-all">{vbLast.id}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">description_hash:</span>{" "}
-                  <span className="font-mono break-all">{vbLast.descriptionHashHex}</span>
-                </div>
-              </div>
-            )}
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               Закрыть
             </Button>
-            <Button type="button" disabled={vbSubmitting} onClick={() => void submitVerbittoOffchain()}>
-              {vbSubmitting ? "Сохранение…" : "Сохранить в БД"}
+            <Button type="button" disabled={submitting} onClick={() => void submitTask()}>
+              {submitting ? "Сохранение…" : "Сохранить"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -286,7 +218,7 @@ export default function TasksPage() {
             }
             onClick={() => setCategoryFilter(f)}
           >
-            {f === "Все" ? "Все" : `${f}: ${VERBITTO_TASK_CATEGORY_LABELS[Number(f)] ?? f}`}
+            {f === "Все" ? "Все" : `${f}: ${TASK_CATEGORY_LABELS[Number(f)] ?? f}`}
           </Button>
         ))}
       </div>
@@ -298,13 +230,12 @@ export default function TasksPage() {
       )}
 
       <div className="surface overflow-hidden rounded-lg border border-border">
-        <div className="grid grid-cols-[minmax(0,1.2fr)_100px_100px_90px_100px_48px] gap-2 px-3 py-2.5 border-b border-border text-[10px] text-muted-foreground uppercase tracking-wider">
+        <div className="grid grid-cols-[minmax(0,1fr)_100px_90px_120px_100px] gap-2 px-3 py-2.5 border-b border-border text-[10px] text-muted-foreground uppercase tracking-wider">
           <span>Задача</span>
           <span>Категория</span>
-          <span>Создатель</span>
-          <span>Хэш</span>
+          <span>Статус</span>
           <span>Создана</span>
-          <span></span>
+          <span className="text-right">Действие</span>
         </div>
 
         {tasksQuery.isLoading && (
@@ -313,31 +244,33 @@ export default function TasksPage() {
 
         {!tasksQuery.isLoading && filtered.length === 0 && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Нет задач. Создайте запись кнопкой выше или примените SQL-миграцию на бэкенде.
+            Задач нет. Создайте запись кнопкой выше или примените SQL-миграцию на оркестраторе.
           </div>
         )}
 
         {filtered.map((task) => (
           <div
             key={task.id}
-            className="grid grid-cols-[minmax(0,1.2fr)_100px_100px_90px_100px_48px] gap-2 px-3 py-3 items-start border-b border-border/50 hover:bg-muted/20 text-sm"
+            className="grid grid-cols-[minmax(0,1fr)_100px_90px_120px_100px] gap-2 px-3 py-3 items-center border-b border-border/50 hover:bg-muted/20 text-sm"
           >
             <div className="flex gap-2 min-w-0">
               <ListTodo className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
               <div className="min-w-0 space-y-0.5">
-                <div className="font-medium text-foreground truncate">{task.title || "Без названия"}</div>
+                <div className="font-medium text-foreground truncate">{task.title}</div>
                 <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                {task.createdBy && (
+                  <p className="text-[10px] font-mono text-muted-foreground truncate" title={task.createdBy}>
+                    {task.createdBy.slice(0, 4)}…{task.createdBy.slice(-4)}
+                  </p>
+                )}
               </div>
             </div>
-            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground w-fit h-fit">
-              {categoryLabel(task.taskCategory)}
+            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground w-fit h-fit justify-self-start">
+              {categoryLabel(task.category)}
             </Badge>
-            <span className="text-xs text-muted-foreground font-mono truncate" title={task.creatorPublicKey}>
-              {shortenPk(task.creatorPublicKey)}
-            </span>
-            <span className="text-[10px] font-mono text-muted-foreground truncate" title={task.descriptionHashHex}>
-              {task.descriptionHashHex.slice(0, 10)}…
-            </span>
+            <Badge variant="outline" className={`text-[10px] w-fit h-fit justify-self-start ${statusBadgeClass(task.status)}`}>
+              {task.status}
+            </Badge>
             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
               <Clock className="h-3 w-3 flex-shrink-0" />
               {task.createdAt
@@ -345,20 +278,19 @@ export default function TasksPage() {
                 : "—"}
             </span>
             <div className="flex justify-end">
-              {task.chainTaskPublicKey ? (
-                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                  <a
-                    href={solscanAccountUrl(task.chainTaskPublicKey)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Solscan"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </Button>
-              ) : (
-                <span className="text-[10px] text-muted-foreground pt-1">—</span>
-              )}
+              <Select
+                value={task.status}
+                onValueChange={(v) => void setTaskStatus(task.id, v as "open" | "in_progress" | "done")}
+              >
+                <SelectTrigger className="h-8 w-[110px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">open</SelectItem>
+                  <SelectItem value="in_progress">in_progress</SelectItem>
+                  <SelectItem value="done">done</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         ))}

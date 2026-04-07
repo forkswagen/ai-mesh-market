@@ -97,10 +97,9 @@ export default function SettingsPage() {
         <p className="text-xs text-muted-foreground">Program ID (devnet), для интеграции кошелька и Anchor-клиента:</p>
         <p className="text-xs font-mono break-all text-primary">{DATA_ARBITER_PROGRAM_ID.toBase58()}</p>
         <p className="text-xs text-muted-foreground pt-2">
-          Прод-бэкенд: <strong>soltoloka-backend</strong> на Vercel; переопределение —{" "}
-          <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> или{" "}
-          <code className="bg-muted px-1 rounded">VITE_SOLToloka_API_URL</code>. Локальный escrow-demo: опционально{" "}
-          <code className="bg-muted px-1 rounded">server/</code> в этом монорепо.
+          Основной API: деплой <code className="bg-muted px-1 rounded">server/</code> — переменная{" "}
+          <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code>. Страница SolToloka (опционально):{" "}
+          <code className="bg-muted px-1 rounded">VITE_SOLToloka_API_URL</code>.
         </p>
       </div>
 

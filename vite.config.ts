@@ -14,13 +14,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Запасной прокси, если что-то дергает относительные /api с dev-сервера.
-    // Основной код использует абсолютные URL → https://soltoloka-backend.vercel.app (см. src/lib/api/backendOrigin.ts).
+    // Если кто-то дергает относительные /api с dev-сервера — прокси на локальный оркестратор.
     proxy: {
-      "/api": { target: "https://soltoloka-backend.vercel.app", changeOrigin: true, secure: true },
-      "/health": { target: "https://soltoloka-backend.vercel.app", changeOrigin: true, secure: true },
-      "/ws": { target: "https://soltoloka-backend.vercel.app", ws: true, changeOrigin: true, secure: true },
-      "/ws/agent": { target: "https://soltoloka-backend.vercel.app", ws: true, changeOrigin: true, secure: true },
+      "/api": { target: "http://127.0.0.1:8787", changeOrigin: true },
+      "/health": { target: "http://127.0.0.1:8787", changeOrigin: true },
+      "/ws": { target: "http://127.0.0.1:8787", ws: true, changeOrigin: true },
+      "/ws/agent": { target: "http://127.0.0.1:8787", ws: true, changeOrigin: true },
+      "/ws/oracle-worker": { target: "http://127.0.0.1:8787", ws: true, changeOrigin: true },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

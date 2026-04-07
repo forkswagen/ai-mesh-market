@@ -1,12 +1,32 @@
 import { heuristicJudge } from "./heuristicJudge.js";
 import { getLmStudioChatCompletionsUrl } from "./lmStudioClient.js";
+import { runOracleThroughWorkers } from "./oracleWorkerPool.js";
+import { ORACLE_SYSTEM_PROMPT, oracleUserContent } from "./oraclePrompt.mjs";
+import { parseVerdictPayload } from "./oracleParse.mjs";
 
 /**
  * @param {string} deliverableText
- * @param {{ ORACLE_LLM_URL?: string, ORACLE_LLM_MODEL?: string, ORACLE_LLM_API_KEY?: string, LM_STUDIO_BASE_URL?: string }} env
+ * @param {{ ORACLE_LLM_URL?: string, ORACLE_LLM_MODEL?: string, ORACLE_LLM_API_KEY?: string, LM_STUDIO_BASE_URL?: string, ORACLE_USE_AGENT_WORKERS?: string, ORACLE_WORKER_TIMEOUT_MS?: string }} env
  * @param {{ oracleLlmModel?: string }} [opts]
  */
 export async function runOracle(deliverableText, env, opts = {}) {
+  const useWorkers = env.ORACLE_USE_AGENT_WORKERS !== "0";
+  if (useWorkers) {
+    try {
+      const r = await runOracleThroughWorkers(deliverableText, opts, env);
+      if (r) {
+        return {
+          verdict: r.verdict,
+          reason: r.reason,
+          source: "agent_worker",
+          workerId: r.workerId,
+        };
+      }
+    } catch (e) {
+      console.warn("Oracle via agent workers failed:", e?.message || e);
+    }
+  }
+
   const useLlm = !!(env.ORACLE_LLM_URL || env.LM_STUDIO_BASE_URL);
   if (useLlm) {
     try {
@@ -20,38 +40,16 @@ export async function runOracle(deliverableText, env, opts = {}) {
   return { ...h, source: "heuristic" };
 }
 
-function parseVerdictPayload(raw) {
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      return JSON.parse(cleaned.slice(start, end + 1));
-    }
-    throw new Error("No JSON object in LLM output");
-  }
-}
-
 async function llmVerdict(text, env, opts) {
   const url = getLmStudioChatCompletionsUrl();
   const model = opts.oracleLlmModel || env.ORACLE_LLM_MODEL || "gpt-4o-mini";
   const body = {
     model,
     messages: [
-      {
-        role: "system",
-        content:
-          'You judge task deliverables. Reply with ONLY this JSON, no other text: {"verdict":true|false,"reason":"short string max 200 chars"}',
-      },
-      {
-        role: "user",
-        content: `Deliverable sample (truncated):\n${text.slice(0, 12000)}`,
-      },
+      { role: "system", content: ORACLE_SYSTEM_PROMPT },
+      { role: "user", content: oracleUserContent(text) },
     ],
     temperature: 0,
-    // Reasoning models (e.g. Qwen in LM Studio) may fill `reasoning_content` first; need headroom.
     max_tokens: 1024,
   };
   const headers = { "Content-Type": "application/json" };
