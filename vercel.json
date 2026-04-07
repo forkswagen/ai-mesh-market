@@ -18,7 +18,7 @@
     { "source": "/ws", "destination": "/api/escora" },
     { "source": "/ws/(.*)", "destination": "/api/escora" },
     {
-      "source": "/api/(?!escora$)(?!orchestrator-proxy)(?!soltoloka-proxy)(.*)",
+      "source": "^/api/(?!(?:escora|orchestrator-proxy|soltoloka-proxy)(?:/|$))(.*)$",
       "destination": "/api/escora"
     },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
