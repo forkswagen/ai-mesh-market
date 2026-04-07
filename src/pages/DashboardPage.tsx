@@ -27,18 +27,18 @@ import { fetchOracleWorkersStats } from "@/lib/api/oracleWorkers";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
 
 const stats = [
-  { label: "Баланс", value: "1,250 NXS", change: "+12.5%", up: true, icon: Zap },
-  { label: "Активные задачи", value: "8", change: "+3", up: true, icon: TrendingUp },
-  { label: "Выполнено", value: "147", change: "за неделю", up: true, icon: Shield },
-  { label: "Репутация", value: "4.87", change: "top 5%", up: true, icon: Bot },
+  { label: "Balance", value: "1,250 NXS", change: "+12.5%", up: true, icon: Zap },
+  { label: "Active tasks", value: "8", change: "+3", up: true, icon: TrendingUp },
+  { label: "Completed", value: "147", change: "this week", up: true, icon: Shield },
+  { label: "Reputation", value: "4.87", change: "top 5%", up: true, icon: Bot },
 ];
 
 const recentTasks = [
-  { title: "CAPTCHA пакет #4421", type: "CAPTCHA", reward: "12 NXS", status: "in_progress", time: "2 мин назад" },
-  { title: "TTS оценка — RU-модель", type: "TTS/STT", reward: "45 NXS", status: "completed", time: "14 мин назад" },
-  { title: "Аннотация мед. снимков", type: "Аннотация", reward: "180 NXS", status: "in_progress", time: "1ч назад" },
-  { title: "Cloudflare bypass x200", type: "CAPTCHA", reward: "8 NXS", status: "pending", time: "2ч назад" },
-  { title: "STT проверка EN/DE", type: "TTS/STT", reward: "65 NXS", status: "completed", time: "3ч назад" },
+  { title: "CAPTCHA batch #4421", type: "CAPTCHA", reward: "12 NXS", status: "in_progress", time: "2m ago" },
+  { title: "TTS eval — RU model", type: "TTS/STT", reward: "45 NXS", status: "completed", time: "14m ago" },
+  { title: "Medical imaging annotation", type: "Annotation", reward: "180 NXS", status: "in_progress", time: "1h ago" },
+  { title: "Cloudflare bypass x200", type: "CAPTCHA", reward: "8 NXS", status: "pending", time: "2h ago" },
+  { title: "STT QA EN/DE", type: "TTS/STT", reward: "65 NXS", status: "completed", time: "3h ago" },
 ];
 
 const statusColors: Record<string, string> = {
@@ -47,17 +47,17 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
 };
 const statusLabels: Record<string, string> = {
-  in_progress: "В работе",
-  completed: "Завершено",
-  pending: "Ожидает",
+  in_progress: "In progress",
+  completed: "Completed",
+  pending: "Pending",
 };
 
 const activity = [
-  { text: "Escrow разблокирован: 45 NXS за TTS оценку", time: "14 мин" },
-  { text: "AI Judge: задача #4398 — выполнено на 100%", time: "28 мин" },
-  { text: "Новый датасет доступен: Speech-RU v3", time: "1ч" },
-  { text: "GPU аренда завершена: 4.2 GPU-hrs", time: "2ч" },
-  { text: "Dispute отклонён по задаче #4305", time: "5ч" },
+  { text: "Escrow released: 45 NXS for TTS evaluation", time: "14 min" },
+  { text: "AI Judge: task #4398 — 100% complete", time: "28 min" },
+  { text: "New dataset available: Speech-RU v3", time: "1h" },
+  { text: "GPU rental finished: 4.2 GPU-hrs", time: "2h" },
+  { text: "Dispute rejected for task #4305", time: "5h" },
 ];
 
 export default function DashboardPage() {
@@ -105,12 +105,12 @@ export default function DashboardPage() {
         <div className="flex items-start gap-3 min-w-0">
           <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">API (Node-оркестратор)</p>
+            <p className="text-sm font-medium text-foreground">API (Node orchestrator)</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Главная — демо-цифры в UI. Проверка <code className="bg-muted px-1 rounded">/health</code> идёт на{" "}
+              Home — demo numbers in the UI. <code className="bg-muted px-1 rounded">/health</code> hits{" "}
               <strong className="text-foreground/90">server/</strong> (
-              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code>, в dev — <code className="bg-muted px-1 rounded">:8787</code>
-              ). Живой escrow —{" "}
+              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code>, in dev — <code className="bg-muted px-1 rounded">:8787</code>
+              ). Live escrow —{" "}
               <Link to="/escrow" className="text-primary hover:underline">
                 AI Escrow
               </Link>
@@ -123,21 +123,21 @@ export default function DashboardPage() {
             <>
               <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground text-xs max-w-[min(100%,320px)] leading-snug">
-                <code className="bg-muted px-1 rounded">/health</code> не запрашивается — см. жёлтый блок выше.
+                <code className="bg-muted px-1 rounded">/health</code> is skipped — see yellow box above.
               </span>
             </>
           )}
           {orchestratorReady && healthQ.isLoading && (
             <>
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-muted-foreground">Проверка…</span>
+              <span className="text-muted-foreground">Checking…</span>
             </>
           )}
           {orchestratorReady && healthQ.isError && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
               <span className="text-destructive text-xs max-w-[min(100%,420px)] leading-snug">
-                Нет связи с оркестратором. {(healthQ.error as Error)?.message}{" "}
+                Cannot reach orchestrator. {(healthQ.error as Error)?.message}{" "}
                 {!(healthQ.error as Error)?.message?.includes("VITE_API_BASE_URL") && orchestratorConnectionHint()}
               </span>
             </>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
               {oracleHostsQ.isSuccess && oracleHostsQ.data && (
                 <Link
                   to="/escrow"
-                  title="Процессы oracle-worker с LM Studio (GET /api/agent/oracle-workers)"
+                  title="oracle-worker processes with LM Studio (GET /api/agent/oracle-workers)"
                   className="inline-flex ml-1"
                 >
                   <Badge
@@ -169,7 +169,7 @@ export default function DashboardPage() {
                     }
                   >
                     <Server className="h-3 w-3" />
-                    LM-хосты: {oracleHostsQ.data.connected}
+                    LM hosts: {oracleHostsQ.data.connected}
                   </Badge>
                 </Link>
               )}
@@ -180,16 +180,16 @@ export default function DashboardPage() {
 
       <div className="surface p-4 border border-primary/30 bg-primary/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Главное демо: AI Escrow</p>
+          <p className="text-sm font-semibold text-foreground">Main demo: AI Escrow</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Нужны <code className="bg-muted px-1 rounded">server/.env</code> с ключами и SOL на devnet. Запуск из корня:{" "}
+            Needs <code className="bg-muted px-1 rounded">server/.env</code> with keys and SOL on devnet. From repo root:{" "}
             <code className="bg-muted px-1 rounded">npm run dev</code>.
           </p>
         </div>
         <Button asChild className="shrink-0 gap-2">
           <Link to="/escrow">
             <Play className="h-4 w-4" />
-            Открыть демо
+            Open demo
           </Link>
         </Button>
       </div>
@@ -202,15 +202,15 @@ export default function DashboardPage() {
           </p>
         </div>
         <Button asChild variant="outline" size="sm" className="shrink-0">
-          <Link to="/escrow">Эскроу и контракт →</Link>
+          <Link to="/escrow">Escrow & contract →</Link>
         </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
-          <h1 className="font-heading text-xl font-bold text-foreground">Обзор Escora</h1>
+          <h1 className="font-heading text-xl font-bold text-foreground">Escora overview</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tasks, SolToloka, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
+            Tasks, SolToloka, AI agents — and escrow where the oracle signs settlement on devnet (AI Escrow section)
           </p>
         </div>
       </div>
@@ -238,9 +238,9 @@ export default function DashboardPage() {
         {/* Recent Tasks */}
         <div className="lg:col-span-2 surface">
           <div className="p-4 border-b border-border flex items-center justify-between">
-            <h2 className="font-heading font-semibold text-foreground">Последние задачи</h2>
+            <h2 className="font-heading font-semibold text-foreground">Recent tasks</h2>
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground" asChild>
-              <Link to="/tasks">Все задачи →</Link>
+              <Link to="/tasks">All tasks →</Link>
             </Button>
           </div>
           <div className="divide-y divide-border">
@@ -269,13 +269,13 @@ export default function DashboardPage() {
         {/* Activity Feed */}
         <div className="surface">
           <div className="p-4 border-b border-border">
-            <h2 className="font-heading font-semibold text-foreground">Активность</h2>
+            <h2 className="font-heading font-semibold text-foreground">Activity</h2>
           </div>
           <div className="p-2">
             {activity.map((a, i) => (
               <div key={i} className="px-3 py-3 rounded-md hover:bg-muted/30 transition-colors cursor-default">
                 <p className="text-sm text-foreground/90 leading-snug">{a.text}</p>
-                <p className="text-xs text-muted-foreground mt-1">{a.time} назад</p>
+                <p className="text-xs text-muted-foreground mt-1">{a.time} ago</p>
               </div>
             ))}
           </div>

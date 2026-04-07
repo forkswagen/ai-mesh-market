@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Миграции Alembic внутри контейнера api (стек уже должен быть запущен).
+# Alembic migrations inside the api container (stack must already be running).
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 ROOT="${DEPAI_BACKEND_ROOT:-$HOME/depai-backend}"
 
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
-  echo "Docker недоступен. Запусти colima start или Docker Desktop."
+  echo "Docker unavailable. Start colima start or Docker Desktop."
   exit 1
 fi
 

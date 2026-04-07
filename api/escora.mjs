@@ -1,6 +1,6 @@
 /**
- * Vercel Serverless: тот же Express, что и `server/` (createApp).
- * Маршруты приходят через rewrites в vercel.json (см. /health, /api/*).
+ * Vercel Serverless: same Express app as `server/` (createApp).
+ * Routes arrive via rewrites in vercel.json (see /health, /api/*).
  */
 import "dotenv/config";
 import { createApp } from "../server/src/createApp.js";

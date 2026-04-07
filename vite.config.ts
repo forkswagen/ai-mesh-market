@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Если кто-то дергает относительные /api с dev-сервера — прокси на локальный оркестратор.
+    // Relative /api from the dev server → local orchestrator.
     proxy: {
       "/api/orchestrator-proxy": {
         target: process.env.ORCHESTRATOR_UPSTREAM_URL || "http://127.0.0.1:8787",

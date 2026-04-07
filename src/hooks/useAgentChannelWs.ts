@@ -13,8 +13,8 @@ export type AgentLmModelsMessage = {
 };
 
 /**
- * WebSocket «agent»: оркестратор проксирует LM Studio (/v1/models).
- * Архитектура: frontend ↔ backend ↔ LM Studio.
+ * WebSocket "agent": orchestrator proxies LM Studio (/v1/models).
+ * Flow: frontend ↔ backend ↔ LM Studio.
  */
 export function useAgentChannelWs(enabled = true) {
   const [connected, setConnected] = useState(false);

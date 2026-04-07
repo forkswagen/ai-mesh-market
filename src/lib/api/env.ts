@@ -9,14 +9,14 @@ function joinHttpPath(base: string, path: string): string {
   return `${base.replace(/\/$/, "")}${p}`;
 }
 
-/** База REST: `VITE_API_BASE_URL`, same-origin с `api/escora`, или legacy `/api/orchestrator-proxy` при `VITE_ORCHESTRATOR_VIA_PROXY=1`. */
+/** REST base: `VITE_API_BASE_URL`, same-origin `api/escora`, or legacy `/api/orchestrator-proxy` with `VITE_ORCHESTRATOR_VIA_PROXY=1`. */
 export function apiBase(): string {
   return getOrchestratorHttpBase();
 }
 
 /**
- * Абсолютный URL для fetch (REST, /health, /api/deals, …).
- * В dev по умолчанию `http://127.0.0.1:8787` без переменных.
+ * Absolute URL for fetch (REST, /health, /api/deals, …).
+ * In dev defaults to `http://127.0.0.1:8787` with no env vars.
  */
 export function apiUrl(path: string): string {
   const wrong = wrongOrchestratorUrlMessage();
@@ -32,6 +32,6 @@ export function apiUrl(path: string): string {
   try {
     return joinHttpPath(base, normalized);
   } catch {
-    throw new Error(`Не удалось собрать URL для пути ${path}. Проверьте VITE_API_BASE_URL.`);
+    throw new Error(`Could not build URL for path ${path}. Check VITE_API_BASE_URL.`);
   }
 }

@@ -1,6 +1,6 @@
 /**
- * Применяет server/migrations/*.sql к PostgreSQL.
- * Требуется DATABASE_URL в server/.env или окружении.
+ * Apply server/migrations/*.sql to PostgreSQL.
+ * Requires DATABASE_URL in server/.env or environment.
  *
  * npm run migrate --prefix server
  */
@@ -15,7 +15,7 @@ const migrationsDir = join(__dirname, "..", "migrations");
 
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
-  console.error("DATABASE_URL не задан. Добавьте строку Neon в server/.env и повторите.");
+  console.error("DATABASE_URL is not set. Add your Neon connection string to server/.env and retry.");
   process.exit(1);
 }
 

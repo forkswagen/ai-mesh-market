@@ -8,7 +8,7 @@ function invalidateDeals(qc: QueryClient) {
 }
 
 /**
- * Подписка на пуш обновлений списка сделок с оркестратора (см. `server/src/dealsWs.js`).
+ * Subscribe to pushed deal list updates from the orchestrator (see `server/src/dealsWs.js`).
  */
 export function useOrchestratorDealsWs(queryClient: QueryClient, enabled = true) {
   const qcRef = useRef(queryClient);

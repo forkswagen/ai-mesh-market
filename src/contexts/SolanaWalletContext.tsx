@@ -14,20 +14,20 @@ import { resolvePhantomProvider } from "@/types/window-solana";
 import { toast } from "sonner";
 
 type SolanaWalletContextValue = {
-  /** Подключён Phantom (или совместимый) */
+  /** Phantom (or compatible wallet) connected */
   connected: boolean;
-  /** Base58 только при активном подключении */
+  /** Base58 when actively connected */
   address: string | null;
   solBalance: number | null;
   balanceLoading: boolean;
   connecting: boolean;
   hasPhantom: boolean;
-  /** Публичный ключ из VITE_DEPAI_DEV_WALLET — только для подсказок / API, не «подключение» */
+  /** Public key from VITE_DEPAI_DEV_WALLET — hints / API only, not a wallet session */
   devWalletPubkey: string | null;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   refreshBalance: () => Promise<void>;
-  /** Подпись произвольного UTF-8 текста → Base64 (64 байта detached). */
+  /** Sign arbitrary UTF-8 text → Base64 (64-byte detached). */
   signUtf8Message: (message: string) => Promise<string>;
 };
 
@@ -42,7 +42,7 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  /** Расширение инжектит провайдер асинхронно — без повторной проверки hasPhantom залипает false. */
+  /** Extension injects provider async — without polling hasPhantom stays false. */
   const [hasPhantom, setHasPhantom] = useState(() =>
     typeof window !== "undefined" ? Boolean(resolvePhantomProvider()) : false,
   );
@@ -115,16 +115,16 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(async () => {
     const p = getPhantom();
     if (!p) {
-      toast.error("Установите Phantom", { description: "https://phantom.app" });
+      toast.error("Install Phantom", { description: "https://phantom.app" });
       return;
     }
     setConnecting(true);
     try {
       const { publicKey } = await p.connect();
       setAddress(publicKey.toBase58());
-      toast.success("Кошелёк подключён");
+      toast.success("Wallet connected");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось подключить");
+      toast.error(e instanceof Error ? e.message : "Failed to connect");
     } finally {
       setConnecting(false);
     }
@@ -146,7 +146,7 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const signUtf8Message = useCallback(async (message: string) => {
     const p = getPhantom();
     if (!p?.signMessage) {
-      throw new Error("Кошелёк не поддерживает signMessage (нужен Phantom)");
+      throw new Error("Wallet does not support signMessage (Phantom required)");
     }
     const enc = new TextEncoder();
     const { signature } = await p.signMessage({ message: enc.encode(message) });

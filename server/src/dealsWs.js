@@ -65,8 +65,8 @@ async function broadcastAgentSnapshots() {
 }
 
 /**
- * Подключает WebSocket: /ws (сделки), /ws/agent (LM Studio → список моделей + refresh),
- * /ws/oracle-worker (локальные агенты — оценки escrow round-robin).
+ * Wire WebSocket: /ws (deals), /ws/agent (LM Studio → model list + refresh),
+ * /ws/oracle-worker (local agents — escrow eval round-robin).
  * @param {import("http").Server} server
  */
 export function attachDealsWebSocket(server) {

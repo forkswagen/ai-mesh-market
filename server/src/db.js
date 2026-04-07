@@ -101,10 +101,10 @@ if (DATABASE_URL) {
   console.log("[db] PostgreSQL (DATABASE_URL)");
 } else {
   sqlite = initSqlite();
-  console.log("[db] SQLite server/data/deals.sqlite — для одной БД на все среды задайте DATABASE_URL (например Neon)");
+  console.log("[db] SQLite server/data/deals.sqlite — set DATABASE_URL (e.g. Neon) for one DB across environments");
   if (process.env.NODE_ENV === "production") {
     console.warn(
-      "[db] production без DATABASE_URL: данные только на диске инстанса. Рекомендуется одна Postgres для тестов и прода.",
+      "[db] production without DATABASE_URL: data only on instance disk. Prefer one Postgres for test and prod.",
     );
   }
 }

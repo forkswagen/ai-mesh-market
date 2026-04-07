@@ -25,24 +25,24 @@ const programIdShort = `${programIdBase58.slice(0, 6)}…${programIdBase58.slice
 const features = [
   {
     icon: ListTodo,
-    title: "Задачи и NXS",
+    title: "Tasks & NXS",
     description:
-      "Маркетплейс AI-задач: CAPTCHA, аннотация, STT/TTS и оценка моделей — с прозрачной экономикой вознаграждений.",
+      "AI task marketplace: CAPTCHA, annotation, STT/TTS, and model evaluation — with transparent reward economics.",
   },
   {
     icon: Database,
-    title: "Датасеты",
-    description: "Публикация и совместное использование датасетов как актива платформы.",
+    title: "Datasets",
+    description: "Publish and share datasets as first-class platform assets.",
   },
   {
     icon: Cable,
-    title: "SolToloka · ноды",
-    description: "Реестр compute-нод и статус через бэкенд SolToloka; агент и LM Studio — отдельный репозиторий.",
+    title: "SolToloka · nodes",
+    description: "Compute node registry and status via the SolToloka backend; agent and LM Studio live in a separate repo.",
   },
   {
     icon: Bot,
-    title: "AI-агенты",
-    description: "Оркестрация агентов поверх задач и данных — от исполнения до проверки качества.",
+    title: "AI agents",
+    description: "Orchestrate agents across tasks and data — from execution to quality checks.",
   },
 ];
 
@@ -62,7 +62,7 @@ function LandingNav() {
 
         <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
           <a href="#features" className="transition-colors hover:text-white">
-            Возможности
+            Features
           </a>
           <a href="#escrow" className="transition-colors hover:text-white">
             AI Escrow
@@ -85,13 +85,13 @@ function LandingNav() {
             rel="noreferrer"
             className="hidden rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white/90 transition-colors hover:bg-white/5 sm:inline-flex"
           >
-            Демо
+            Demo
           </a>
           <Link
             to="/dashboard"
             className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
           >
-            Открыть приложение
+            Open app
           </Link>
         </div>
       </div>
@@ -105,10 +105,10 @@ export default function LandingPage() {
       <LandingNav />
 
       <AetherFlowHero
-        badge="Solana devnet · программа data_arbiter"
+        badge="Solana devnet · data_arbiter program"
         title="Escora"
-        description="Маркетплейс задач, датасетов, GPU и AI-агентов с on-chain эскроу. Автономные выплаты и возвраты через инструкцию ai_judge — доверие к сделкам с данными без ручного арбитража."
-        primaryCta={{ to: "/dashboard", label: "Открыть приложение" }}
+        description="Marketplace for tasks, datasets, GPU, and AI agents with on-chain escrow. Autonomous payouts and refunds via ai_judge — trust data deals without manual arbitration."
+        primaryCta={{ to: "/dashboard", label: "Open app" }}
         secondaryCta={{ to: "/escrow", label: "AI Escrow" }}
         badgeIcon={Network}
       />
@@ -122,10 +122,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             className="mb-12 max-w-2xl"
           >
-            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-purple-400">Платформа</p>
-            <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">Один интерфейс — несколько рынков</h2>
+            <p className="mb-2 text-xs font-medium uppercase tracking-widest text-purple-400">Platform</p>
+            <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">One interface — multiple markets</h2>
             <p className="mt-3 text-white/60">
-              От задач для людей и моделей до инфраструктуры и денежных потоков, закреплённых в контракте.
+              From human and model tasks to infrastructure and cash flows anchored in the program.
             </p>
           </motion.div>
 
@@ -167,19 +167,17 @@ export default function LandingPage() {
                 <Sparkles className="h-3.5 w-3.5" />
                 AI-oracled escrow
               </div>
-              <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-                Эскроу датасетов с автономным судьёй
-              </h2>
+              <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">Dataset escrow with an autonomous judge</h2>
               <p className="mt-4 text-white/60 leading-relaxed">
-                Программа <span className="text-white/90">data_arbiter</span> на Solana фиксирует депозит, хэш датасета и
-                решение: покупатель, продавец и оракул знают правила заранее. После проверки (в т.ч. LLM) вызывается{" "}
+                The <span className="text-white/90">data_arbiter</span> program on Solana locks the deposit, dataset hash, and
+                outcome: buyer, seller, and oracle know the rules upfront. After review (including LLM),{" "}
                 <code className="rounded bg-white/10 px-1.5 py-0.5 text-sm text-purple-200">ai_judge</code>
-                — расчёт без ручного подписания каждого спора.
+                settles — no manual signing for every dispute.
               </p>
               <ul className="mt-6 space-y-2 text-sm text-white/55">
                 <li className="flex gap-2">
                   <Shield className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
-                  Цикл: инициализация → депозит → хэш → оценка → settlement на devnet
+                  Flow: initialize → deposit → hash → evaluation → settlement on devnet
                 </li>
                 <li className="flex gap-2">
                   <Network className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
@@ -194,7 +192,7 @@ export default function LandingPage() {
                   to="/escrow"
                   className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-gray-200"
                 >
-                  Перейти к AI Escrow
+                  Go to AI Escrow
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
@@ -209,16 +207,13 @@ export default function LandingPage() {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-purple-950/40 to-zinc-900/80 p-6 sm:p-8">
-              <p className="text-xs font-medium uppercase tracking-widest text-purple-400">Оркестратор</p>
+              <p className="text-xs font-medium uppercase tracking-widest text-purple-400">Orchestrator</p>
               <p className="mt-3 text-sm text-white/70 leading-relaxed">
-                Локальный или задеплоенный API соединяет REST-контракт с транзакциями: seeded demo в один клик в UI,
-                продакшен — бэкенд <strong className="text-purple-200">soltoloka-backend</strong> (Vercel), при необходимости{" "}
-                <code className="text-purple-200">VITE_API_BASE_URL</code> и CORS на стороне
-                сервера.
+                A local or deployed API wires the REST contract to transactions: one-click seeded demo in the UI;
+                production uses the <strong className="text-purple-200">soltoloka-backend</strong> stack on Vercel when needed, plus{" "}
+                <code className="text-purple-200">VITE_API_BASE_URL</code> and server-side CORS.
               </p>
-              <p className="mt-4 text-sm text-white/50">
-                Подробности развёртывания — в README (фронт и бэк на Vercel).
-              </p>
+              <p className="mt-4 text-sm text-white/50">Deployment details are in the README (frontend and backend on Vercel).</p>
             </div>
           </motion.div>
         </div>
@@ -228,7 +223,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:px-6">
           <div className="text-center sm:text-left">
             <p className="font-heading font-semibold text-white">Escora</p>
-            <p className="mt-1 text-sm text-white/45">Маркетплейс и AI Escrow · National Solana Hackathon use-case</p>
+            <p className="mt-1 text-sm text-white/45">Marketplace & AI Escrow · National Solana Hackathon use-case</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
             <a
@@ -238,13 +233,13 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 text-white/70 hover:text-white"
             >
               <Github className="h-4 w-4" />
-              Исходники
+              Source
             </a>
             <a href={LIVE_DEMO} target="_blank" rel="noreferrer" className="text-white/70 hover:text-white">
-              Живое демо
+              Live demo
             </a>
             <Link to="/dashboard" className="text-purple-400 hover:text-purple-300">
-              Приложение →
+              App →
             </Link>
           </div>
         </div>

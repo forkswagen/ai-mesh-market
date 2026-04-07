@@ -1,3 +1,3 @@
-soltoloka-backend-create-all-on-debug.patch — из корня monorepo:
+soltoloka-backend-create-all-on-debug.patch — from monorepo root:
   cd soltoloka-backend && git apply ../patches/soltoloka-backend-create-all-on-debug.patch
-(или ручное слияние: в startup при DEBUG вызвать Base.metadata.create_all, см. app/main.py в форке.)
+(or manual merge: on DEBUG startup call Base.metadata.create_all, see app/main.py in fork.)

@@ -1,10 +1,10 @@
 /**
- * Проверка подписи Phantom / Solana wallet (ed25519, UTF-8 сообщение, подпись Base64, 64 байта).
+ * Verify Phantom / Solana wallet signature (ed25519, UTF-8 message, Base64 signature, 64 bytes).
  */
 import { createPublicKey, verify as cryptoVerify } from "node:crypto";
 import { PublicKey } from "@solana/web3.js";
 
-/** DER SPKI prefix для сырого 32-byte Ed25519 public key (совместимо с Node verify). */
+/** DER SPKI prefix for raw 32-byte Ed25519 public key (Node verify compatible). */
 const SPKI_ED25519_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 
 /**

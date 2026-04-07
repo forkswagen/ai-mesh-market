@@ -1,39 +1,39 @@
 # API contract — Escora escrow orchestrator
 
-Совместимо с отдельным [`depai-backend`](https://github.com/forkswagen/depai-backend): те же пути и модели можно реализовать там или проксировать сюда.
+Compatible with standalone [`depai-backend`](https://github.com/forkswagen/depai-backend): same paths and payloads can be implemented or proxied there.
 
-**Base URL:** Node-оркестратор `server/` — локально `http://localhost:8787`, на фронте задаётся **`VITE_API_BASE_URL`** (в dev без переменной используется `http://127.0.0.1:8787`).
+**Base URL:** Node orchestrator `server/` — locally `http://localhost:8787`; frontend sets **`VITE_API_BASE_URL`** (in dev without env: `http://127.0.0.1:8787`), or same-origin on Vercel with `api/escora`.
 
-## Маппинг `deal_id` ↔ on-chain
+## `deal_id` ↔ on-chain mapping
 
-- Поле **`dealId`** (number / u64) в API **совпадает** с `deal_id` в программе `data_arbiter` и с сидом PDA `escrow[buyer, seller, dealId]`.
+- API field **`dealId`** (number / u64) **matches** `deal_id` in `data_arbiter` and the PDA seed `escrow[buyer, seller, dealId]`.
 - **Program ID (devnet):** `9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg`
 
-## Кто подписывает `ai_judge`
+## Who signs `ai_judge`
 
-- В демо по умолчанию — **ключ оркула на сервере** (`ORACLE_SECRET_JSON`), хранится только в `.env`, не в браузере.
-- Для продакшена: HSM / отдельный сервис / ограничение доступа к эндпоинту.
+- In the demo, by default — **server oracle key** (`ORACLE_SECRET_JSON`), `.env` only, never in the browser.
+- Production: HSM / separate service / locked-down endpoint.
 
-## Очередь оракула на локальных LM (агенты)
+## Oracle queue on local LMs (agents)
 
-1. Процессы **`npm run oracle-worker --prefix server`** подключаются к **`WS /ws/oracle-worker`** (опционально `?id=my-node`).
-2. Оркестратор рассылает **`oracle_eval`** `{ jobId, deliverableText, model, temperature }`; воркер отвечает **`oracle_result`** `{ jobId, ok, verdict?, reason?, error? }` после вызова своего LM Studio.
-3. Выбор воркера: **`ORACLE_WORKER_STRATEGY=round_robin`** (по умолчанию) среди свободных подключений или **`random`**. Если воркеров нет, истек таймаут (`ORACLE_WORKER_TIMEOUT_MS`) или ошибка — используется LM на сервере (`LM_STUDIO_BASE_URL` / `ORACLE_LLM_URL`) или эвристика.
-4. **`GET /api/agent/oracle-workers`** — счётчики и массив **`agents`**: `logicalId`, `sessionId`, `name`, **`accepting`**, `busy`.
-5. **`GET /api/agent/live`** — только список агентов (как в `agents` выше).
-6. Чат через выбранный хост: **`POST /api/agent/infer`** с телом `{ "agentId": "<logicalId>", "messages": [{ "role": "user", "content": "..." }], "model": "", "temperature": 0.7 }`. Оркестратор шлёт на WebSocket **`lm_chat`**; воркер отвечает **`lm_chat_result`** `{ jobId, ok, text?, error? }`.
-7. Вкл/выкл приёма задач на хосте (тот же `logicalId`, что `?id=` при подключении): **`POST /api/agent/control/accepting`** с `{ "logicalId": "my-node", "accepting": true|false, "secret": "..." }` и/или заголовок **`X-Agent-Control-Secret`**. В **production** на сервере должен быть задан **`AGENT_CONTROL_SECRET`**.
-8. В **`POST /api/deals`**, **`POST /api/demo/seeded`**, **`POST /api/agent/oracle`** опционально **`oracleWorkerAgentId`** (logicalId) — оракул идёт в указанный воркер, иначе round-robin среди `accepting`.
+1. Processes **`npm run oracle-worker --prefix server`** connect to **`WS /ws/oracle-worker`** (optional `?id=my-node`).
+2. Orchestrator sends **`oracle_eval`** `{ jobId, deliverableText, model, temperature }`; worker replies **`oracle_result`** `{ jobId, ok, verdict?, reason?, error? }` after calling local LM Studio.
+3. Worker selection: **`ORACLE_WORKER_STRATEGY=round_robin`** (default) across idle connections or **`random`**. If no workers, timeout (`ORACLE_WORKER_TIMEOUT_MS`), or error — use server LM (`LM_STUDIO_BASE_URL` / `ORACLE_LLM_URL`) or heuristic.
+4. **`GET /api/agent/oracle-workers`** — counters and **`agents`**: `logicalId`, `sessionId`, `name`, **`accepting`**, `busy`.
+5. **`GET /api/agent/live`** — agent list only (same shape as `agents`).
+6. Chat via selected host: **`POST /api/agent/infer`** body `{ "agentId": "<logicalId>", "messages": [{ "role": "user", "content": "..." }], "model": "", "temperature": 0.7 }`. Orchestrator sends WebSocket **`lm_chat`**; worker replies **`lm_chat_result`** `{ jobId, ok, text?, error? }`.
+7. Toggle task acceptance on host (same `logicalId` as `?id=` on connect): **`POST /api/agent/control/accepting`** with `{ "logicalId": "my-node", "accepting": true|false, "secret": "..." }` and/or header **`X-Agent-Control-Secret`**. In **production** **`AGENT_CONTROL_SECRET`** must be set.
+8. In **`POST /api/deals`**, **`POST /api/demo/seeded`**, **`POST /api/agent/oracle`** optional **`oracleWorkerAgentId`** (logicalId) — oracle routes to that worker, else round-robin among `accepting`.
 
-## Эндпоинты
+## Endpoints
 
 ### `GET /api/meta`
 
-Диагностика деплоя: **`apiRevision`**, **`serverSrcDir`**, **`db`** (`pg` / `sqlite`), список agent-endpoints. Если здесь нет `apiRevision` ≥ 3 или нет `GET /api/agent/live` в списке — на порту крутится **старая** сборка оркестратора (перезапустите `server/`).
+Deploy diagnostics: **`apiRevision`**, **`serverSrcDir`**, **`db`** (`pg` / `sqlite`), agent endpoint list. If `apiRevision` is below 3 or `GET /api/agent/live` is missing — **old** orchestrator build (restart `server/`).
 
 ### `GET /health`
 
-Проверка живости. Ответ (совместим с фронтом `fetchApiHealth`):
+Liveness. Response (works with `fetchApiHealth`):
 
 ```json
 {
@@ -47,19 +47,19 @@
 
 ### `POST /api/v1/auth/challenge` · `POST /api/v1/auth/verify`
 
-Мок для локального оркестратора: те же пути, что у depai-backend, чтобы фронт с `VITE_DEPAI_DEV_WALLET` мог получить токен через [`depaiAuth`](../src/lib/api/depaiAuth.ts). Подпись **не проверяется** — только для dev.
+Mock for local orchestrator: same paths as depai-backend so the app with `VITE_DEPAI_DEV_WALLET` can obtain a token via [`depaiAuth`](../src/lib/api/depaiAuth.ts). Signature **not verified** — dev only.
 
 ### `GET /api/deals`
 
-Список сделок из БД оркестратора.
+Deal list from orchestrator DB.
 
 ### `GET /api/deals/:id`
 
-`id` — UUID записи оркестратора. Возвращает статусы и подписи транзакций при наличии.
+`id` — orchestrator row UUID. Returns status and tx signatures when present.
 
 ### `POST /api/deals`
 
-Создать сделку и (опционально) выполнить on-chain шаги до `Submitted`.
+Create a deal and (optionally) run on-chain steps through `Submitted`.
 
 Body (JSON):
 
@@ -75,23 +75,23 @@ Body (JSON):
 }
 ```
 
-- Если `runChain: true` и заданы `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON` в `.env`, сервер выполнит `initialize_escrow` → `deposit` → `submit_dataset_hash` → heuristic/LLM oracle → `ai_judge`.
-- Публичные ключи в body должны совпадать с ключами из секретов при `runChain`.
+- If `runChain: true` and `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON` are in `.env`, server runs `initialize_escrow` → `deposit` → `submit_dataset_hash` → heuristic/LLM oracle → `ai_judge`.
+- Public keys in body must match the `.env` keypairs when `runChain`.
 
 ### `POST /api/deals/:id/oracle`
 
-Повторно запустить oracle + `ai_judge` (если состояние `submitted` в БД).
+Re-run oracle + `ai_judge` (if DB state is `submitted`).
 
 ### `POST /api/demo/seeded`
 
-Один клик: поднимает сделку с `dealId` из timestamp, используются только ключи из `.env` (см. `server/.env.example`).
+One click: creates a deal with `dealId` from timestamp, uses only `.env` keys (see `server/.env.example`).
 
 ## CORS
 
-Оркестратор разрешает origin из **`VITE_DEV_ORIGIN`** (несколько значений через **запятую**) и всегда добавляет `http://127.0.0.1:5173`. По умолчанию: `http://localhost:5173`.
+Orchestrator allows origins from **`VITE_DEV_ORIGIN`** (comma-separated) and always adds `http://127.0.0.1:5173`. Default: `http://localhost:5173`.
 
-## Перенос в depai-backend
+## Moving to depai-backend
 
-1. Скопировать маршруты `/api/deals` и логику Solana из `server/src/`.
-2. Оставить тот же JSON-контракт — фронт не меняется.
-3. Выставить `VITE_API_BASE_URL` на URL деплоя бэка.
+1. Copy `/api/deals` routes and Solana logic from `server/src/`.
+2. Keep the same JSON contract — frontend unchanged.
+3. Set `VITE_API_BASE_URL` to the new backend URL.

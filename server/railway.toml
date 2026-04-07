@@ -1,5 +1,5 @@
-# Railway: Settings → Root Directory = server (обязательно для монорепо).
-# Builder: только RAILPACK или DOCKERFILE (nixpacks больше не поддерживается в config).
+# Railway: Settings → Root Directory = server (required for monorepo).
+# Builder: RAILPACK or DOCKERFILE only (nixpacks no longer supported in config).
 # https://docs.railway.app/reference/config-as-code
 
 [build]

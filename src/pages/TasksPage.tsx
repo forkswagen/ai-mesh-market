@@ -28,7 +28,7 @@ import { createPlatformTask, listPlatformTasks, patchPlatformTaskStatus, type Pl
 import { TASK_CATEGORY_LABELS } from "@/lib/tasks/categories";
 import { toast } from "sonner";
 
-const CATEGORY_FILTER = ["Все", ...Object.keys(TASK_CATEGORY_LABELS).map(String)] as const;
+const CATEGORY_FILTER = ["All", ...Object.keys(TASK_CATEGORY_LABELS).map(String)] as const;
 
 function categoryLabel(cat: number): string {
   return TASK_CATEGORY_LABELS[cat] ?? `#${cat}`;
@@ -41,7 +41,7 @@ function statusBadgeClass(status: string): string {
 }
 
 export default function TasksPage() {
-  const [categoryFilter, setCategoryFilter] = useState<string>("Все");
+  const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -59,17 +59,17 @@ export default function TasksPage() {
 
   const rows: PlatformTaskDto[] = tasksQuery.data ?? [];
   const filtered: PlatformTaskDto[] =
-    categoryFilter === "Все"
+    categoryFilter === "All"
       ? rows
       : rows.filter((t) => t.category === Number(categoryFilter));
 
   async function submitTask() {
     if (!title.trim()) {
-      toast.error("Нужен заголовок");
+      toast.error("Title required");
       return;
     }
     if (!description.trim()) {
-      toast.error("Нужно описание");
+      toast.error("Description required");
       return;
     }
     setSubmitting(true);
@@ -82,13 +82,13 @@ export default function TasksPage() {
         createdBy: connected && address ? address : null,
         status: "open",
       });
-      toast.success("Задача создана", { description: "Сохранено в БД оркестратора." });
+      toast.success("Task created", { description: "Saved to orchestrator database." });
       setTitle("");
       setDescription("");
       setCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
+      toast.error(e instanceof Error ? e.message : "Failed to save");
     } finally {
       setSubmitting(false);
     }
@@ -98,9 +98,9 @@ export default function TasksPage() {
     try {
       await patchPlatformTaskStatus(id, status);
       await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] });
-      toast.success("Статус обновлён");
+      toast.success("Status updated");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Ошибка");
+      toast.error(e instanceof Error ? e.message : "Error");
     }
   }
 
@@ -108,9 +108,9 @@ export default function TasksPage() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Задачи</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Tasks</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Офчейн-задачи маркетплейса в SQLite/Postgres оркестратора:{" "}
+            Off-chain marketplace tasks in orchestrator SQLite/Postgres:{" "}
             <code className="text-[10px] bg-muted px-1 rounded">GET/POST /api/tasks</code>,{" "}
             <code className="text-[10px] bg-muted px-1 rounded">PATCH /api/tasks/:id</code>.
           </p>
@@ -125,25 +125,25 @@ export default function TasksPage() {
             onClick={() => void queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] })}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${tasksQuery.isFetching ? "animate-spin" : ""}`} />
-            Обновить
+            Refresh
           </Button>
           <Button
             type="button"
             className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
             onClick={() => setCreateOpen(true)}
           >
-            + Создать задачу
+            + Create task
           </Button>
         </div>
       </div>
 
       <Alert>
-        <AlertTitle className="text-sm">Оркестратор</AlertTitle>
+        <AlertTitle className="text-sm">Orchestrator</AlertTitle>
         <AlertDescription>
           <span className="font-mono text-xs break-all">{apiBaseStr}</span>
           <p className="text-xs text-muted-foreground mt-2">
-            Миграция таблицы: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. В dev из корня:{" "}
-            <code className="text-[10px]">npm run dev</code> (Vite + API на 8787) или только{" "}
+            Table migration: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. In dev from root:{" "}
+            <code className="text-[10px]">npm run dev</code> (Vite + API on 8787) or only{" "}
             <code className="text-[10px]">npm run server:dev</code>.
           </p>
         </AlertDescription>
@@ -152,38 +152,38 @@ export default function TasksPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Новая задача</DialogTitle>
-            <DialogDescription>Данные пишутся в БД Node-оркестратора (.env с DATABASE_URL).</DialogDescription>
+            <DialogTitle>New task</DialogTitle>
+            <DialogDescription>Data is written to the Node orchestrator DB (.env with DATABASE_URL).</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             {!connected && (
               <p className="text-sm text-muted-foreground">
-                Кошелёк опционален. Можно подключить Phantom — тогда{" "}
-                <code className="text-[10px]">createdBy</code> заполнится автоматически.
+                Wallet is optional. Connect Phantom to auto-fill{" "}
+                <code className="text-[10px]">createdBy</code>.
                 <Button type="button" variant="link" className="h-auto p-0 ml-1 text-xs" onClick={() => void connect()}>
-                  Подключить
+                  Connect
                 </Button>
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="task-title">Заголовок</Label>
-              <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Кратко" />
+              <Label htmlFor="task-title">Title</Label>
+              <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="task-desc">Описание</Label>
+              <Label htmlFor="task-desc">Description</Label>
               <Textarea
                 id="task-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Детали задачи"
+                placeholder="Task details"
                 className="min-h-[120px]"
               />
             </div>
             <div className="space-y-2">
-              <Label>Категория</Label>
+              <Label>Category</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Категория" />
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(TASK_CATEGORY_LABELS).map(([n, label]) => (
@@ -197,10 +197,10 @@ export default function TasksPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-              Закрыть
+              Close
             </Button>
             <Button type="button" disabled={submitting} onClick={() => void submitTask()}>
-              {submitting ? "Сохранение…" : "Сохранить"}
+              {submitting ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -219,33 +219,33 @@ export default function TasksPage() {
             }
             onClick={() => setCategoryFilter(f)}
           >
-            {f === "Все" ? "Все" : `${f}: ${TASK_CATEGORY_LABELS[Number(f)] ?? f}`}
+            {f === "All" ? "All" : `${f}: ${TASK_CATEGORY_LABELS[Number(f)] ?? f}`}
           </Button>
         ))}
       </div>
 
       {tasksQuery.isError && (
         <p className="text-sm text-destructive">
-          {tasksQuery.error instanceof Error ? tasksQuery.error.message : "Не удалось загрузить задачи"}
+          {tasksQuery.error instanceof Error ? tasksQuery.error.message : "Failed to load tasks"}
         </p>
       )}
 
       <div className="surface overflow-hidden rounded-lg border border-border">
         <div className="grid grid-cols-[minmax(0,1fr)_100px_90px_120px_100px] gap-2 px-3 py-2.5 border-b border-border text-[10px] text-muted-foreground uppercase tracking-wider">
-          <span>Задача</span>
-          <span>Категория</span>
-          <span>Статус</span>
-          <span>Создана</span>
-          <span className="text-right">Действие</span>
+          <span>Task</span>
+          <span>Category</span>
+          <span>Status</span>
+          <span>Created</span>
+          <span className="text-right">Action</span>
         </div>
 
         {tasksQuery.isLoading && (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">Загрузка…</div>
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">Loading…</div>
         )}
 
         {!tasksQuery.isLoading && filtered.length === 0 && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Задач нет. Создайте запись кнопкой выше или примените SQL-миграцию на оркестраторе.
+            No tasks yet. Create one above or run the SQL migration on the orchestrator.
           </div>
         )}
 
@@ -275,7 +275,7 @@ export default function TasksPage() {
             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
               <Clock className="h-3 w-3 flex-shrink-0" />
               {task.createdAt
-                ? new Date(task.createdAt).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })
+                ? new Date(task.createdAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })
                 : "—"}
             </span>
             <div className="flex justify-end">
@@ -298,7 +298,7 @@ export default function TasksPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Показано: {filtered.length} из {rows.length} · фильтр: {categoryFilter}
+        Showing: {filtered.length} of {rows.length} · filter: {categoryFilter}
       </p>
     </div>
   );

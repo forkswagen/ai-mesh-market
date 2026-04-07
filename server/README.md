@@ -1,60 +1,58 @@
-# depai-orchestrator
+# Escora Node orchestrator (`server/`)
 
-Минимальный бэкенд для хакатон-демо: SQLite + вызовы `data_arbiter` на Solana devnet через сырые инструкции Anchor.
+Minimal backend for the hackathon demo: SQLite + raw Anchor instructions to `data_arbiter` on Solana devnet.
 
-См. [docs/API_CONTRACT.md](../docs/API_CONTRACT.md) — тот же контракт можно реализовать в `depai-backend`.
+See [docs/API_CONTRACT.md](../docs/API_CONTRACT.md) — the same contract can be implemented in `depai-backend`.
 
-## Railway
+Service root on Railway is this folder (`server/`). See [railway.toml](railway.toml) (builder **RAILPACK**) and the root [README.md](../README.md). If Railpack fails, confirm **Root Directory = server**; fallback — [Dockerfile](Dockerfile).
 
-Корень сервиса в Railway = эта папка (`server/`). См. [railway.toml](railway.toml) (builder **RAILPACK**) и раздел в корневом [README.md](../README.md#бэкенд-на-railway). Если Railpack падает — проверь **Root Directory = server**; fallback — [Dockerfile](Dockerfile).
+## Run
 
-## Запуск
+### Quick devnet demo
 
-### Быстро для демо (локальный devnet)
-
-Из **корня** монорепо:
+From **monorepo root**:
 
 ```bash
-npm run setup:devnet
-```
-
-Создаёт `server/.env` с тремя keypair и пытается airdrop. Если RPC ответил **429** — пополни вручную:
-
-```bash
-npm run demo:addrs
-```
-
-Адреса открой в [faucet.solana.com](https://faucet.solana.com) (network **devnet**, по ~1–2 SOL на каждый).
-
-### Вручную
-
-```bash
-cp .env.example .env
-# заполни BUYER_SECRET_JSON, SELLER_SECRET_JSON, ORACLE_SECRET_JSON (JSON array bytes как в solana-keygen)
-npm install
+node scripts/setup-devnet-env.mjs
 npm run dev
 ```
 
-Все три ключа должны иметь SOL на devnet. Покупатель дополнительно оплачивает `amountLamports` при `deposit`.
+Creates `server/.env` with three keypairs and tries airdrop. If RPC returns **429** — fund manually:
 
-Проверка: из корня `npm run demo:check` (оркестратор должен слушать **:8787**).
+```bash
+solana balance <PUBKEY> --url devnet
+```
 
-## LLM oracle
+Use [faucet.solana.com](https://faucet.solana.com) (network **devnet**, ~1–2 SOL each).
 
-1. **Локальные воркеры (приоритет):** WebSocket **`/ws/oracle-worker`**. Запусти на каждой машине с LM Studio:
+### Manual
+
+Copy [`.env.example`](.env.example) to `.env` and fill:
+
+```env
+# BUYER_SECRET_JSON, SELLER_SECRET_JSON, ORACLE_SECRET_JSON (JSON byte array like solana-keygen)
+```
+
+All three need SOL on devnet. Buyer also pays `amountLamports` on `deposit`.
+
+Check: from root `npm run demo:check` (orchestrator must listen on **:8787**).
+
+## Oracle / LM Studio
+
+1. **Local workers (preferred):** WebSocket **`/ws/oracle-worker`**. On each machine with LM Studio:
 
    ```bash
-   npm run oracle-worker
+   npm run oracle-worker --prefix server
    ```
 
-   Переменные: `ORACLE_WORKER_WS_URL`, `ORACLE_WORKER_ID`, на воркере — `LM_STUDIO_BASE_URL` / `ORACLE_LLM_MODEL`. Балансировка: `ORACLE_WORKER_STRATEGY=round_robin` или `random`. Отключить воркеров: `ORACLE_USE_AGENT_WORKERS=0`.
+   Vars: `ORACLE_WORKER_WS_URL`, `ORACLE_WORKER_ID`, on worker — `LM_STUDIO_BASE_URL` / `ORACLE_LLM_MODEL`. Balancing: `ORACLE_WORKER_STRATEGY=round_robin` or `random`. Disable workers: `ORACLE_USE_AGENT_WORKERS=0`.
 
-2. **LM на сервере:** `ORACLE_LLM_URL`, `ORACLE_LLM_MODEL`, `ORACLE_LLM_API_KEY` или `LM_STUDIO_BASE_URL`.
+2. **Server LM:** `ORACLE_LLM_URL`, `ORACLE_LLM_MODEL`, `ORACLE_LLM_API_KEY` or `LM_STUDIO_BASE_URL`.
 
-3. Иначе — эвристика в `src/heuristicJudge.js`.
+3. Otherwise — heuristic in `src/heuristicJudge.js`.
 
-Статус очереди: `GET /api/agent/oracle-workers` (в ответе также **`agents`** с `accepting` / `busy`).
+Queue status: `GET /api/agent/oracle-workers` (response includes **`agents`** with `accepting` / `busy`).
 
-Чат с фронта через выбранный хост: **`POST /api/agent/infer`** → воркер получает **`lm_chat`** и шлёт запрос в локальный LM Studio. Список для UI: **`GET /api/agent/live`**.
+Chat from UI through selected host: **`POST /api/agent/infer`** → worker gets **`lm_chat`** and calls local LM Studio. List for UI: **`GET /api/agent/live`**.
 
-Локальная панель хоста (LM Studio + диагностика + accepting): из **корня** репозитория **`npm run agent-host:panel`** после `pip install -r streamlit/requirements.txt`. Исходник: [`streamlit/agent_host_panel.py`](../streamlit/agent_host_panel.py). API напрямую: **`POST /api/agent/control/accepting`** (см. `AGENT_CONTROL_SECRET` в `.env.example`).
+Local host panel (LM Studio + diagnostics + accepting): from repo root **`npm run agent-host:panel`** after `pip install -r streamlit/requirements.txt`. Source: [`streamlit/agent_host_panel.py`](../streamlit/agent_host_panel.py). API: **`POST /api/agent/control/accepting`** (see `AGENT_CONTROL_SECRET` in `.env.example`).

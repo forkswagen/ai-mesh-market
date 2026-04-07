@@ -1,32 +1,32 @@
-# Питч 3–5 минут · Escora / AI Escrow (кейс 2)
+# 3–5 minute pitch · Escora / AI Escrow (track 2)
 
-## 1. Проблема (30–45 с)
+## 1. Problem (30–45 s)
 
-Поставка данных и расчёты между сторонами: споры о качестве, непрозрачность и ручные решения. Нужна **проверяемая** связка **решения** (в т.ч. AI) и **исхода сделки** on-chain.
+Delivering data and settling between parties: quality disputes, opacity, manual decisions. You need a **verifiable** link between an **outcome** (including AI) and **deal settlement** on-chain.
 
-## 2. Решение (45 с)
+## 2. Solution (45 s)
 
-**AI-oracled escrow** на Solana (devnet): программа `data_arbiter` — эскроу, хэш поставки, инструкция **`ai_judge`** фиксирует вердикт и завершает сделку. Оркул на сервере (LLM или эвристика) подписывает транзакцию — **не только рекомендация в UI**, а **изменение состояния контракта**.
+**AI-oracled escrow** on Solana (devnet): `data_arbiter` — escrow, deliverable hash, **`ai_judge`** commits the verdict and closes the deal. Server oracle (LLM or heuristic) signs the transaction — **not just a UI hint**, but **contract state change**.
 
-## 3. Демо в браузере (90–120 с)
+## 3. Browser demo (90–120 s)
 
-1. Открыть [https://ai-mesh-market.vercel.app/escrow](https://ai-mesh-market.vercel.app/escrow) (или локально по README).
-2. Убедиться, что оркестратор доступен (зелёный статус).
-3. **«Запустить seeded demo»** → в списке сделка **`settled`**.
-4. Открыть ссылку **Solscan** на транзакцию `ai_judge`.
+1. Open [https://ai-mesh-market.vercel.app/escrow](https://ai-mesh-market.vercel.app/escrow) (or local per README).
+2. Confirm orchestrator is up (green status).
+3. **“Run seeded demo”** → deal shows **`settled`**.
+4. Open **Solscan** link for `ai_judge`.
 
-## 4. Архитектура (30 с, 1 слайд)
+## 4. Architecture (30 s, 1 slide)
 
-`Фронт → API оркестратора → Solana RPC → program` + off-chain oracle (вердикт → подпись `ai_judge`). Подробнее: [API_CONTRACT.md](API_CONTRACT.md) — кто подписывает и почему так в MVP.
+`Frontend → orchestrator API → Solana RPC → program` + off-chain oracle (verdict → `ai_judge` signature). Details: [API_CONTRACT.md](API_CONTRACT.md) — who signs and why in MVP.
 
-## 5. Честно про MVP (20 с)
+## 5. MVP honesty (20 s)
 
-Серверный ключ оркула; в проде — ограничение доступа, HSM / политика. Маркетплейс в UI (Tasks, датасеты) — **витрина сценариев**; доказательная ценность — **escrow + on-chain**.
+Server oracle key; production — access control, HSM / policy. Marketplace UI (Tasks, datasets) is a **scenario showcase**; proof value is **escrow + on-chain**.
 
-## 6. Закрытие (15 с)
+## 6. Close (15 s)
 
-Кейс 2 ТЗ: **AI → решение → on-chain**. Репозиторий, Program ID, ссылка на живой фронт.
+Track 2 brief: **AI → decision → on-chain**. Repo, Program ID, live frontend link.
 
 ---
 
-**Репетиция:** таймер 5 минут; запасной сценарий — записанное видео тем же flow.
+**Rehearsal:** 5-minute timer; backup — screen recording of the same flow.

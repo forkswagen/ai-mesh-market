@@ -1,7 +1,7 @@
 /**
- * Vercel: REST с фронта → /api/orchestrator-proxy/* → реальный Node-оркестратор (обход CORS).
- * Env (Vercel → Settings → Environment Variables, область Functions):
- *   ORCHESTRATOR_UPSTREAM_URL=https://your-server.up.railway.app  (без слэша в конце)
+ * Vercel: browser REST → /api/orchestrator-proxy/* → real Node orchestrator (CORS bypass).
+ * Env (Vercel → Settings → Environment Variables, Functions scope):
+ *   ORCHESTRATOR_UPSTREAM_URL=https://your-server.up.railway.app  (no trailing slash)
  */
 const UPSTREAM = (process.env.ORCHESTRATOR_UPSTREAM_URL || "").replace(/\/$/, "");
 
@@ -51,8 +51,8 @@ export default async function handler(req, res) {
       .end(
         JSON.stringify({
           error:
-            "ORCHESTRATOR_UPSTREAM_URL не задан. В Vercel добавьте URL деплоя server/ (Railway/Render…). " +
-            "См. server/Dockerfile и .env.example в корне репозитория.",
+            "ORCHESTRATOR_UPSTREAM_URL is not set. In Vercel add the server/ deploy URL (Railway/Render…). " +
+            "See server/Dockerfile and repo root .env.example.",
         }),
       );
     return;

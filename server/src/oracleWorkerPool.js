@@ -1,6 +1,6 @@
 /**
- * WebSocket-агенты с локальным LM Studio (/ws/oracle-worker):
- * escrow oracle_eval, общий чат lm_chat, round-robin или выбор по logicalId.
+ * WebSocket agents with local LM Studio (/ws/oracle-worker):
+ * escrow oracle_eval, shared lm_chat, round-robin or pick by logicalId.
  */
 import { randomUUID } from "node:crypto";
 
@@ -23,7 +23,7 @@ let roundRobin = 0;
 /** @type {Map<string, { kind: 'oracle' | 'chat', resolve: (v: any) => void, reject: (e: Error) => void, timeout: NodeJS.Timeout, slot: AgentSlot }>} */
 const pending = new Map();
 
-/** Хуки: регистрация агента в БД / вебхуки провайдеру (без импорт-циклов из index). */
+/** Hooks: agent DB registration / provider webhooks (avoid import cycles from index). */
 /** @type {{ onConnected?: (s: AgentSlot) => void, onDisconnected?: (p: { logicalId: string, sessionId: string, name: string }) => void }} */
 let lifecycleHooks = {};
 
@@ -59,7 +59,7 @@ export function getOracleWorkerStats() {
   };
 }
 
-/** Агенты с открытым WebSocket (для выбора на фронте). */
+/** Agents with an open WebSocket (for frontend selection). */
 export function listLiveAgents() {
   return getOracleWorkerStats().agents;
 }
@@ -252,7 +252,7 @@ export function runOracleThroughWorkers(deliverableText, opts = {}, env = proces
 }
 
 /**
- * Произвольный чат через выбранного агента → LM Studio.
+ * Ad-hoc chat via selected agent → LM Studio.
  * @param {{ agentLogicalId: string, messages: unknown[], model?: string, temperature?: number }} input
  * @param {{ ORACLE_WORKER_TIMEOUT_MS?: string }} env
  */
@@ -266,7 +266,7 @@ export function runChatThroughAgent(input, env = process.env) {
   );
   if (!available.length) {
     return Promise.reject(
-      new Error(`Нет агента "${logicalId}" в статусе live и accepting — проверьте oracle-worker и тумблер хоста.`),
+      new Error(`No agent "${logicalId}" live and accepting — check oracle-worker and host toggle.`),
     );
   }
   const slot = available[0];

@@ -1,9 +1,9 @@
-/** RPC для кошелька и чтения баланса (по умолчанию devnet, как escrow). */
+/** RPC for wallet and balance reads (default devnet, same as escrow). */
 export function getSolanaRpcUrl(): string {
   return import.meta.env.VITE_SOLANA_RPC_URL?.trim() || "https://api.devnet.solana.com";
 }
 
-/** Query-параметр cluster для solscan.io по текущему RPC. */
+/** `cluster` query param for solscan.io from current RPC. */
 export function solscanClusterQuery(): string {
   const u = getSolanaRpcUrl().toLowerCase();
   if (u.includes("mainnet") || u.includes("helius-mainnet")) return "cluster=mainnet";

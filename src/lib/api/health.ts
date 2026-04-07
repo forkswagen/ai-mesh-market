@@ -1,6 +1,6 @@
 import { apiUrl } from "./env";
 
-/** Express-оркестратор отдаёт поля status, app, programId — разбираем мягко. */
+/** Express orchestrator returns status, app, programId — parse loosely. */
 export type HealthResponse = { status?: string; app?: string; env?: string; ok?: boolean };
 
 export async function fetchApiHealth(): Promise<HealthResponse> {
@@ -12,7 +12,7 @@ export async function fetchApiHealth(): Promise<HealthResponse> {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
       throw new Error(
-        "Не удалось достучаться до оркестратора. Поднимите из корня: npm run dev (или npm run server:dev), проверьте VITE_API_BASE_URL и CORS.",
+        "Cannot reach the orchestrator. Start from repo root: npm run dev (or npm run server:dev), check VITE_API_BASE_URL and CORS.",
       );
     }
     throw e;
@@ -24,15 +24,15 @@ export async function fetchApiHealth(): Promise<HealthResponse> {
   const trimmed = text.trimStart();
   if (trimmed.startsWith("<") || trimmed.startsWith("<!")) {
     throw new Error(
-      "Ответ не JSON (HTML?). Укажите URL Node-оркестратора в VITE_API_BASE_URL (путь /health). " +
-        "Не используйте api.devnet.solana.com — это RPC Solana, не Escora server/.",
+      "Response is not JSON (HTML?). Set the Node orchestrator URL in VITE_API_BASE_URL (/health path). " +
+        "Do not use api.devnet.solana.com — that is Solana RPC, not Escora server/.",
     );
   }
 
   if (trimmed.startsWith("{") && trimmed.includes('"jsonrpc"')) {
     throw new Error(
-      "Ответ похож на JSON-RPC Solana: VITE_API_BASE_URL, скорее всего, указывает на RPC (api.devnet.solana.com), " +
-        "а нужен публичный URL деплоя Node-оркестратора из этого репозитория (server/).",
+      "Response looks like Solana JSON-RPC: VITE_API_BASE_URL probably points at RPC (api.devnet.solana.com); " +
+        "you need the public URL of the Node orchestrator from this repo (server/).",
     );
   }
 
@@ -40,7 +40,7 @@ export async function fetchApiHealth(): Promise<HealthResponse> {
     return JSON.parse(text) as HealthResponse;
   } catch {
     throw new Error(
-      "Ответ /health не JSON — ожидается depai-orchestrator (server/). Проверьте VITE_API_BASE_URL (не Solana RPC).",
+      "/health response is not JSON — expected depai-orchestrator (server/). Check VITE_API_BASE_URL (not Solana RPC).",
     );
   }
 }

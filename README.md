@@ -1,101 +1,102 @@
 # Escora
 
-Маркетплейс задач, датасетов, GPU и AI-агентов. В репозитории также лежит Solana / Anchor-модуль **dataset escrow** с инструкцией **`ai_judge`** (автономная выплата или возврат).
+Marketplace for tasks, datasets, GPU, and AI agents. This repo also includes a Solana / Anchor **dataset escrow** program with the **`ai_judge`** instruction (autonomous payout or refund).
 
 ## Solana program · `data_arbiter` (devnet)
 
 - **Program ID:** `9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg`
-- **Код:** `programs/data_arbiter/src/lib.rs`
-- **Документация по инструкциям:** `programs/README.md`
-- **Фронт-хелперы:** `src/lib/solana/escrow.ts`
-- **Оффчейн проверки датасета (до LLM / tx):** `src/lib/judge/datasetJudge.ts`
+- **Code:** `programs/data_arbiter/src/lib.rs`
+- **Instruction docs:** `programs/README.md`
+- **Frontend helpers:** `src/lib/solana/escrow.ts`
+- **Off-chain dataset checks (before LLM / tx):** `src/lib/judge/datasetJudge.ts`
 
-Сборка контракта: `anchor build` (нужны Anchor CLI и Rust toolchain).
+Build the program: `anchor build` (requires Anchor CLI and Rust toolchain).
 
-## Фронтенд
+## Frontend
 
 ```bash
 npm install
 npm run dev
 ```
 
-В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). Команда **`npm run dev` в корне** поднимает сразу Vite и **Node-оркестратор** (`server/` на **8787**); только фронт без API — `npm run dev:web`. REST, **`/health`**, escrow и задачи идут на оркестратор ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)). Прокси Vite в [`vite.config.ts`](vite.config.ts) смотрит на :8787. Страница **SolToloka** по желанию ходит в отдельный FastAPI (`VITE_SOLToloka_API_URL` или публичный демо-URL в коде).
+In dev open [http://127.0.0.1:5173](http://127.0.0.1:5173). **`npm run dev` at repo root** starts both Vite and the **Node orchestrator** (`server/` on **8787**); frontend only — `npm run dev:web`. REST, **`/health`**, escrow, and tasks target the orchestrator ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)). Vite proxy in [`vite.config.ts`](vite.config.ts) points to :8787. **SolToloka** optionally talks to a separate FastAPI (`VITE_SOLToloka_API_URL` or the public demo URL in code). On Vercel, the same project can serve the app and `api/escora` — then you often omit `VITE_API_BASE_URL`.
 
-### SolToloka: связка фронт · бэк · агент
+### SolToloka: frontend · backend · agent
 
-| Компонент | Что настроить |
-|-----------|----------------|
-| **Фронт** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | Только эта страница: API по [`soltoloka.ts`](src/lib/api/soltoloka.ts). Свой инстанс — **`VITE_SOLToloka_API_URL`**. Остальной фронт (`/escrow`, `/tasks`, health) — **`VITE_API_BASE_URL`** → оркестратор. |
-| **Бэк** ([`forkswagen/soltoloka-backend`](https://github.com/forkswagen/soltoloka-backend)) | Postgres, Redis, `.env`, `uvicorn`. Ноды: **POST `/api/v1/compute/register`** (JWT). WebSocket: **`/api/v1/ws/connect/{node_id}`** — при старте бэка путь пишется в лог. Для **агентов** надёжнее хост с нормальным **wss** (Railway/VM), не serverless. |
-| **Агент** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | Один репо: воркер **`python src/main.py`** и демо-настройка LM/backend — **`streamlit run streamlit_app/app.py`** (хост/порт LM Studio, WS бэка, `NODE_ID`, запись в `.env`). Запросы к локальным LLM пользователей идут **только** как фронт → бэк → WS → агент → LM Studio. |
+| Piece | What to configure |
+|-------|-------------------|
+| **Frontend** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | This page only: API via [`soltoloka.ts`](src/lib/api/soltoloka.ts). Your instance — **`VITE_SOLToloka_API_URL`**. Rest of the app (`/escrow`, `/tasks`, health) — **`VITE_API_BASE_URL`** → orchestrator (or same-origin on Vercel monolith). |
+| **Backend** ([`forkswagen/soltoloka-backend`](https://github.com/forkswagen/soltoloka-backend)) | Postgres, Redis, `.env`, `uvicorn`. Nodes: **POST `/api/v1/compute/register`** (JWT). WebSocket: **`/api/v1/ws/connect/{node_id}`** — path is logged on startup. For **agents** prefer a host with real **wss** (Railway/VM), not classic serverless. |
+| **Agent** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | One repo: worker **`python src/main.py`** and demo LM/backend setup — **`streamlit run streamlit_app/app.py`** (LM Studio host/port, backend WS, `NODE_ID`, `.env`). User LLM calls go **only** as frontend → backend → WS → agent → LM Studio. |
 
-## Бэкенд (прод): Node-оркестратор `server/`
+## Backend (production): Node orchestrator `server/`
 
-Целевой API для фронта (escrow, tasks, LM, WebSocket) — **деплой [`server/`](server/)**. Задайте **`VITE_API_BASE_URL`** на этот URL (без `/` в конце); в CORS оркестратора укажите **`VITE_DEV_ORIGIN`** = origin фронта.
+Target API for the app (escrow, tasks, LM, WebSocket) — deploy [`server/`](server/). Set **`VITE_API_BASE_URL`** to that URL (no trailing `/`) **unless** the frontend and `api/escora` share one Vercel project; in the orchestrator CORS set **`VITE_DEV_ORIGIN`** = frontend origin.
 
-**SolToloka FastAPI** ([forkswagen/soltoloka-backend](https://github.com/forkswagen/soltoloka-backend)) опционален: только страница **`/soltoloka`**, переменная **`VITE_SOLToloka_API_URL`** (или дефолт демо-хоста в коде).
+**SolToloka FastAPI** ([forkswagen/soltoloka-backend](https://github.com/forkswagen/soltoloka-backend)) is optional: only **`/soltoloka`**, variable **`VITE_SOLToloka_API_URL`** (or default demo host in code).
 
-## Опционально: оркестратор escrow · `server/` (Node)
+## Optional: escrow orchestrator · `server/` (Node)
 
-Локальный сервис: Postgres/SQLite + цикл `initialize_escrow` → … → `ai_judge` (см. [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). Первый раз: `cd server && npm install`. Дальше из **корня** достаточно `npm run dev` (Vite + оркестратор); только API — `npm run server:dev`.
+Local service: Postgres/SQLite + flow `initialize_escrow` → … → `ai_judge` (see [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). First time: `cd server && npm install`. From **root**: `npm run dev` (Vite + orchestrator); API only — `npm run server:dev`.
 
-**WebSocket / LM Studio / oracle-worker:** реализованы в `server/` (`/ws`, `/ws/agent`, `/ws/oracle-worker`).
+**WebSocket / LM Studio / oracle-worker:** implemented in `server/` (`/ws`, `/ws/agent`, `/ws/oracle-worker`).
 
-**Локальный хост агента (LM Studio у пользователя):** панель Streamlit [`streamlit/agent_host_panel.py`](streamlit/agent_host_panel.py) — проверка оркестратора и LM Studio (`/v1/models`), вкл/выкл приёма задач, готовая команда для `oracle-worker`. Запуск: `pip install -r streamlit/requirements.txt`, затем **`npm run agent-host:panel`** из корня (UI на [http://127.0.0.1:8501](http://127.0.0.1:8501)). Воркер по-прежнему отдельным процессом: `npm run oracle-worker --prefix server`.
+**Local agent host (user’s LM Studio):** Streamlit panel [`streamlit/agent_host_panel.py`](streamlit/agent_host_panel.py) — checks orchestrator and LM Studio (`/v1/models`), toggles task acceptance, copy-paste command for `oracle-worker`. Run: `pip install -r streamlit/requirements.txt`, then **`npm run agent-host:panel`** from root (UI at [http://127.0.0.1:8501](http://127.0.0.1:8501)). Worker stays a separate process: `npm run oracle-worker --prefix server`.
 
-### Главный сценарий (около 5 минут)
+### Main scenario (~5 minutes)
 
-Цель: убедиться, что **AI-oracled escrow** на Solana devnet проходит полный цикл до `ai_judge`.
+Goal: verify **AI-oracled escrow** on Solana devnet runs end-to-end through `ai_judge`.
 
-1. **Предусловия:** в `server/.env` (шаблон [server/.env.example](server/.env.example)) заданы `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON` — JSON-массив байт в формате Solana keypair. На **devnet** у всех трёх есть SOL; покупатель дополнительно покрывает сумму `deposit` ([server/README.md](server/README.md)).
-2. **Установка:** из корня `npm install`, в `server/` при необходимости `npm install`.
-3. **Запуск одной командой** из корня репозитория:
+1. **Prerequisites:** `server/.env` (template [server/.env.example](server/.env.example)) has `BUYER_SECRET_JSON`, `SELLER_SECRET_JSON`, `ORACLE_SECRET_JSON` — JSON byte arrays in Solana keypair format. On **devnet** all three have SOL; buyer also covers `deposit` ([server/README.md](server/README.md)).
+2. **Install:** from root `npm install`, in `server/` run `npm install` if needed.
+3. **One command** from repo root:
 
    ```bash
    npm run dev
    ```
 
-   Поднимается Vite (**5173**) и оркестратор (**8787**). Алиас прежней связки: `npm run dev:demo`. Только фронт: `npm run dev:web`; только API: `npm run server:dev`.
-4. **В браузере:** открой [http://127.0.0.1:5173/escrow](http://127.0.0.1:5173/escrow). Должен быть зелёный статус оркестратора; нажми **«Запустить seeded demo»**.
-5. **Ожидание:** в списке сделок появилась запись со статусом `settled` и ссылкой на транзакцию `ai_judge` (Solscan devnet).
+   Starts Vite (**5173**) and orchestrator (**8787**). Alias: `npm run dev:demo`. Frontend only: `npm run dev:web`; API only: `npm run server:dev`.
+4. **Browser:** open [http://127.0.0.1:5173/escrow](http://127.0.0.1:5173/escrow). Orchestrator status should be green; click **“Run seeded demo”**.
+5. **Expect:** a deal appears with status `settled` and a link to the `ai_judge` tx (Solscan devnet).
 
 **Troubleshooting**
 
-- Нет ответа `/health` — подними `server/` на :8787 или задай `VITE_API_BASE_URL` на деплой оркестратора; проверь CORS (`VITE_DEV_ORIGIN` на сервере).
-- **503** и про ключи в seeded demo — не реализовано на выбранном бэкенде или не заполнен `server/.env` при локальном Node-оркестраторе.
-- Ошибка on-chain / RPC — devnet, балансы, `VITE_SOLANA_RPC_URL` / `SOLANA_RPC_URL` в `server/.env` для локального сценария.
+- No `/health` — start `server/` on :8787 or set `VITE_API_BASE_URL` to your orchestrator; check CORS (`VITE_DEV_ORIGIN` on server).
+- **503** about keys in seeded demo — not implemented on chosen backend or `server/.env` missing for local Node orchestrator.
+- On-chain / RPC errors — devnet, balances, `VITE_SOLANA_RPC_URL` / `SOLANA_RPC_URL` in `server/.env` for local runs.
 
-Опционально в **`.env.local`** задай `VITE_DEPAI_DEV_WALLET` для совместимости с auth-флоу на других бэкендах; локальный оркестратор отдаёт `GET /api/deals` и без JWT.
+Optionally set `VITE_DEPAI_DEV_WALLET` in **`.env.local`** for auth compatibility with other backends; local orchestrator serves `GET /api/deals` without JWT.
 
-## Деплой (Vercel) — прод
+## Deploy (Vercel) — production
 
-**Фронт:** [https://ai-mesh-market.vercel.app](https://ai-mesh-market.vercel.app) · **Оркестратор:** свой деплой `server/` (Railway и т.д.); **SolToloka** — опционально отдельный FastAPI.
+**Frontend:** [https://ai-mesh-market.vercel.app](https://ai-mesh-market.vercel.app) · **Orchestrator:** same Vercel project (`api/escora` + Function env) **or** separate `server/` (Railway, etc.) · **SolToloka** — optional separate FastAPI.
 
-### Фронт (этот репозиторий → Vercel)
+### Frontend (this repo → Vercel)
 
 1. **Project → Settings → Environment Variables**
-2. **`VITE_API_BASE_URL`** — URL деплоя Node-оркестратора (`server/`), обязателен для escrow/tasks в проде.
-3. Опционально **`VITE_SOLToloka_API_URL`** — только для страницы `/soltoloka`.
-4. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** — см. [.env.example](.env.example).
-5. **Redeploy** после смены `VITE_*` (вшиваются в **build**).
+2. **`VITE_API_BASE_URL`** — orchestrator URL if **not** same-origin; omit when using monolith `api/escora`.
+3. Optional **`VITE_SOLToloka_API_URL`** — `/soltoloka` only.
+4. Optional **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** — see [.env.example](.env.example).
+5. **Function env** for `api/escora`: `DATABASE_URL`, keypairs, `VITE_DEV_ORIGIN`, `AGENT_CONTROL_SECRET`, etc. — see [server/.env.example](server/.env.example).
+6. **Redeploy** after changing `VITE_*` (baked into **build**).
 
-Сборка: [`vercel.json`](vercel.json) (`dist/`, SPA fallback).
+Build: [`vercel.json`](vercel.json) (`dist/`, SPA fallback, rewrites to `api/escora`).
 
-### Бэкенд: Node `server/` (Railway / VPS / локально)
+### Backend: Node `server/` (Railway / VPS / local)
 
-Для escrow, задач и WebSocket задеплойте [`server/`](server/) (Root Directory **`server`**, [server/.env.example](server/.env.example), **`VITE_DEV_ORIGIN`** в CORS). На фронте задайте **`VITE_API_BASE_URL`** на этот URL.
+For escrow, tasks, and WebSocket deploy [`server/`](server/) (Root Directory **`server`**, [server/.env.example](server/.env.example), **`VITE_DEV_ORIGIN`** for CORS). On the frontend set **`VITE_API_BASE_URL`** to that URL **unless** you use the Vercel monolith.
 
-### Опционально: SolToloka FastAPI (только `/soltoloka`)
+### Optional: SolToloka FastAPI (`/soltoloka` only)
 
-Отдельный деплой [**forkswagen/soltoloka-backend**](https://github.com/forkswagen/soltoloka-backend) и **`VITE_SOLToloka_API_URL`** на фронте, если нужна страница compute-нод.
+Deploy [**forkswagen/soltoloka-backend**](https://github.com/forkswagen/soltoloka-backend) and set **`VITE_SOLToloka_API_URL`**, or use **`SOLTOLOKA_UPSTREAM_URL`** for `/api/soltoloka-proxy`.
 
-## Сдача хакатона (National Solana Hackathon by Decentrathon)
+## Hackathon submission (National Solana Hackathon by Decentrathon)
 
-- **Кейс:** 2 — AI + Blockchain (autonomous / AI-oracled escrow).
-- **Colosseum:** загрузить решение (в ТЗ: без сдачи на Colosseum работа не принимается).
-- **Форма Google:** [https://forms.gle/ZfKofXP5ymxW69o48](https://forms.gle/ZfKofXP5ymxW69o48)
-- **Дедлайн (по ТЗ):** до 23:59 **7 апреля 2026** (GMT+5).
+- **Track:** 2 — AI + Blockchain (autonomous / AI-oracled escrow).
+- **Colosseum:** upload submission (per rules).
+- **Google form:** [https://forms.gle/ZfKofXP5ymxW69o48](https://forms.gle/ZfKofXP5ymxW69o48)
+- **Deadline (per brief):** 23:59 **April 7, 2026** (GMT+5).
 
-В описании укажи: ссылку на **GitHub**, **Program ID** (см. выше), URL фронта, кратко шаги из раздела «Главный сценарий» / прод выше.
+In the description include: **GitHub** link, **Program ID** (above), frontend URL, short steps from “Main scenario” / production above.
 
-**Питч 3–5 минут:** черновой сценарий — [docs/PITCH_OUTLINE.md](docs/PITCH_OUTLINE.md).
+**3–5 minute pitch:** draft outline — [docs/PITCH_OUTLINE.md](docs/PITCH_OUTLINE.md).

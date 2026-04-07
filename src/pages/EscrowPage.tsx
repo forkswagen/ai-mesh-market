@@ -27,13 +27,13 @@ import { useAgentChannelWs } from "@/hooks/useAgentChannelWs";
 import { toast } from "sonner";
 
 const steps = [
-  { icon: Lock, title: "Инициализация", desc: "initialize_escrow · PDA escrow[buyer,seller,deal_id]" },
-  { icon: CheckCircle, title: "Депозит", desc: "deposit — покупатель блокирует SOL в PDA" },
-  { icon: Bot, title: "Датасет", desc: "submit_dataset_hash — хэш deliverable" },
+  { icon: Lock, title: "Initialize", desc: "initialize_escrow · PDA escrow[buyer,seller,deal_id]" },
+  { icon: CheckCircle, title: "Deposit", desc: "deposit — buyer locks SOL in PDA" },
+  { icon: Bot, title: "Dataset", desc: "submit_dataset_hash — deliverable hash" },
   {
     icon: Scale,
     title: "AI Oracle",
-    desc: "приоритет: воркеры /ws/oracle-worker (round-robin по локальным LM), иначе LM сервера → ai_judge",
+    desc: "priority: /ws/oracle-worker workers (round-robin across local LMs), else server LM → ai_judge",
   },
 ];
 
@@ -42,7 +42,7 @@ const onChainIx = [
   "deposit()",
   "submit_dataset_hash([u8;32])",
   `ai_judge(deal_id, verdict, reason) · reason ≤ ${AI_JUDGE_MAX_REASON_BYTES} bytes`,
-  "release_to_seller / refund_buyer — только если задан judge_authority",
+  "release_to_seller / refund_buyer — only if judge_authority is set",
 ];
 
 function stateBadge(state: string) {
@@ -99,12 +99,12 @@ export default function EscrowPage() {
     },
     onSuccess: (data) => {
       if (data.state === "settled") {
-        toast.success("Сделка закрыта on-chain (ai_judge)");
+        toast.success("Deal settled on-chain (ai_judge)");
       } else if (data.state === "created" && data.reason) {
-        toast.success("Создана запись escrow в depai-backend");
+        toast.success("Escrow record created in depai-backend");
         toast.message(data.reason);
       } else {
-        toast.success("Запрос выполнен");
+        toast.success("Request completed");
       }
       qc.invalidateQueries({ queryKey: ["orchestrator", "deals"] });
       if (data.signatures?.sigJudge) {
@@ -113,7 +113,7 @@ export default function EscrowPage() {
         });
       }
     },
-    onError: (e: Error) => toast.error(e.message || "Ошибка demo"),
+    onError: (e: Error) => toast.error(e.message || "Demo error"),
   });
 
   return (
@@ -121,10 +121,10 @@ export default function EscrowPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · Escora</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Agent economy: оркул подписывает <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. REST и
-          WebSocket по умолчанию — <strong className="text-foreground/90">Node-оркестратор</strong>{" "}
-          <code className="text-xs bg-muted px-1 rounded">server/</code> (в dev <code className="text-xs bg-muted px-1 rounded">:8787</code>
-          , в проде задайте <code className="text-xs bg-muted px-1 rounded">VITE_API_BASE_URL</code>). Программа{" "}
+          Agent economy: oracle signs <code className="text-xs bg-muted px-1 rounded">ai_judge</code> on devnet. REST and
+          WebSocket default to <strong className="text-foreground/90">Node orchestrator</strong>{" "}
+          <code className="text-xs bg-muted px-1 rounded">server/</code> (dev <code className="text-xs bg-muted px-1 rounded">:8787</code>
+          ; production: set <code className="text-xs bg-muted px-1 rounded">VITE_API_BASE_URL</code> if not same-origin). Program{" "}
           <span className="text-foreground/90">data_arbiter</span>
         </p>
       </div>
@@ -157,23 +157,23 @@ export default function EscrowPage() {
           <>
             <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground text-sm">
-              <code className="bg-muted px-1 rounded">/health</code> не запрашивается, пока не задан корректный URL Node-оркестратора — см. блок выше (
-              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> = деплой <code className="bg-muted px-1 rounded">server/</code>
-              , не Solana RPC).
+              <code className="bg-muted px-1 rounded">/health</code> is skipped until a valid Node orchestrator URL is configured — see box above (
+              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> = <code className="bg-muted px-1 rounded">server/</code> deploy
+              , not Solana RPC).
             </span>
           </>
         )}
         {orchestratorReady && healthQ.isLoading && (
           <>
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground">Проверка /health…</span>
+            <span className="text-muted-foreground">Checking /health…</span>
           </>
         )}
         {orchestratorReady && healthQ.isError && (
           <>
             <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
             <span className="text-destructive text-sm leading-snug">
-              Нет ответа <code className="bg-muted px-1 rounded">/health</code>. {(healthQ.error as Error)?.message}
+              No response from <code className="bg-muted px-1 rounded">/health</code>. {(healthQ.error as Error)?.message}
             </span>
           </>
         )}
@@ -181,7 +181,7 @@ export default function EscrowPage() {
           <>
             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
             <span className="text-foreground">
-              API доступен: {healthQ.data.app ?? healthQ.data.status ?? "ok"}
+              API up: {healthQ.data.app ?? healthQ.data.status ?? "ok"}
               {healthQ.data.env ? (
                 <>
                   {" "}
@@ -198,10 +198,10 @@ export default function EscrowPage() {
           <div className="min-w-0 space-y-1">
             <h2 className="font-heading font-semibold text-foreground text-sm">Agent ↔ backend ↔ frontend</h2>
             <p className="text-xs text-muted-foreground leading-snug">
-              Список моделей приходит с LM Studio через оркестратор (<code className="bg-muted px-1 rounded">/ws/agent</code>,{" "}
-              <code className="bg-muted px-1 rounded">GET /api/agent/models</code>). В браузере нет прямого доступа к LM Studio.
-              В <code className="bg-muted px-1 rounded">server/.env</code> задай{" "}
-              <code className="bg-muted px-1 rounded">LM_STUDIO_BASE_URL</code> и при необходимости{" "}
+              Model list comes from LM Studio via the orchestrator (<code className="bg-muted px-1 rounded">/ws/agent</code>,{" "}
+              <code className="bg-muted px-1 rounded">GET /api/agent/models</code>). The browser has no direct LM Studio access.
+              In <code className="bg-muted px-1 rounded">server/.env</code> set{" "}
+              <code className="bg-muted px-1 rounded">LM_STUDIO_BASE_URL</code> and optionally{" "}
               <code className="bg-muted px-1 rounded">ORACLE_LLM_URL</code>.
             </p>
             {agentWs.snapshot?.baseUrl && (
@@ -218,7 +218,7 @@ export default function EscrowPage() {
                 title={
                   oracleHostsQ.data.workerIds.length
                     ? oracleHostsQ.data.workerIds.join("\n")
-                    : "Запуск на хосте: npm run oracle-worker --prefix server"
+                    : "On host run: npm run oracle-worker --prefix server"
                 }
                 className={
                   oracleHostsQ.data.connected > 0
@@ -227,27 +227,27 @@ export default function EscrowPage() {
                 }
               >
                 <Server className="h-3 w-3" />
-                Хостов LM: {oracleHostsQ.data.connected}
-                {oracleHostsQ.data.busy > 0 ? ` · ${oracleHostsQ.data.busy} занято` : ""}
+                LM hosts: {oracleHostsQ.data.connected}
+                {oracleHostsQ.data.busy > 0 ? ` · ${oracleHostsQ.data.busy} busy` : ""}
               </Badge>
             )}
             {oracleHostsQ.isError && (
               <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px]">
-                Хосты: нет данных
+                Hosts: no data
               </Badge>
             )}
             <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => agentWs.refresh()}>
               <RefreshCw className="h-3.5 w-3.5" />
-              Обновить модели
+              Refresh models
             </Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground leading-snug flex items-start gap-2">
           <Server className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
           <span>
-            Подключённые <strong className="text-foreground/90">хостовые машины</strong> с LM Studio (процесс{" "}
-            <code className="bg-muted px-1 rounded">oracle-worker</code>, аналог связки soltoloka-agent → оркестратор): канал{" "}
-            <code className="bg-muted px-1 rounded">/ws/oracle-worker</code>, счётчик обновляется каждые ~4 с (
+            Connected <strong className="text-foreground/90">host machines</strong> with LM Studio (<code className="bg-muted px-1 rounded">oracle-worker</code>{" "}
+            process, similar to soltoloka-agent → orchestrator): channel{" "}
+            <code className="bg-muted px-1 rounded">/ws/oracle-worker</code>, counter refreshes ~every 4s (
             <code className="bg-muted px-1 rounded">GET /api/agent/oracle-workers</code>).
           </span>
         </p>
@@ -256,7 +256,7 @@ export default function EscrowPage() {
         )}
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <label className="text-xs text-muted-foreground shrink-0" htmlFor="oracle-model">
-            Модель для oracle (seeded demo)
+            Oracle model (seeded demo)
           </label>
           <select
             id="oracle-model"
@@ -265,7 +265,7 @@ export default function EscrowPage() {
             onChange={(e) => setOracleModel(e.target.value)}
             disabled={demoM.isPending}
           >
-            <option value="">По умолчанию (ORACLE_LLM_MODEL в .env)</option>
+            <option value="">Default (ORACLE_LLM_MODEL in .env)</option>
             {(agentWs.snapshot?.models || []).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.id}
@@ -275,7 +275,7 @@ export default function EscrowPage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <label className="text-xs text-muted-foreground shrink-0" htmlFor="oracle-host">
-            Хост oracle-worker (опционально)
+            oracle-worker host (optional)
           </label>
           <select
             id="oracle-host"
@@ -284,7 +284,7 @@ export default function EscrowPage() {
             onChange={(e) => setOracleWorkerSessionId(e.target.value)}
             disabled={demoM.isPending}
           >
-            <option value="">Round-robin по accepting</option>
+            <option value="">Round-robin across accepting</option>
             {(oracleHostsQ.data?.agents ?? [])
               .filter((a) => a.accepting)
               .map((a) => (
@@ -298,11 +298,11 @@ export default function EscrowPage() {
 
       <div className="surface p-5 space-y-3 border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-heading font-semibold text-foreground text-sm">Demo: полный цикл on-chain</h2>
+          <h2 className="font-heading font-semibold text-foreground text-sm">Demo: full on-chain cycle</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Нужны <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> и ключи в{" "}
-            <code className="bg-muted px-1 rounded">server/.env</code>. Запуск из корня:{" "}
-            <code className="bg-muted px-1 rounded">npm run dev</code> (Vite + оркестратор).
+            Requires <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> and keys in{" "}
+            <code className="bg-muted px-1 rounded">server/.env</code>. From repo root:{" "}
+            <code className="bg-muted px-1 rounded">npm run dev</code> (Vite + orchestrator).
           </p>
         </div>
         <Button
@@ -311,7 +311,7 @@ export default function EscrowPage() {
           onClick={() => demoM.mutate()}
         >
           {demoM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Запустить seeded demo
+          Run seeded demo
         </Button>
       </div>
 
@@ -319,12 +319,12 @@ export default function EscrowPage() {
         <h2 className="font-heading font-semibold text-foreground text-sm">Program ID (devnet)</h2>
         <p className="text-xs font-mono break-all text-primary">{DATA_ARBITER_PROGRAM_ID.toBase58()}</p>
         <p className="text-xs text-muted-foreground">
-          API контракт: <code className="bg-muted px-1 rounded">docs/API_CONTRACT.md</code> · переносимый в depai-backend
+          API contract: <code className="bg-muted px-1 rounded">docs/API_CONTRACT.md</code> · portable to depai-backend
         </p>
       </div>
 
       <div className="surface p-5">
-        <h2 className="font-heading font-semibold text-foreground mb-4">Поток</h2>
+        <h2 className="font-heading font-semibold text-foreground mb-4">Flow</h2>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {steps.map((s, i) => (
             <div key={s.title} className="flex items-center gap-2 flex-shrink-0">
@@ -342,7 +342,7 @@ export default function EscrowPage() {
       </div>
 
       <div className="surface p-5">
-        <h2 className="font-heading font-semibold text-foreground mb-3">Инструкции Anchor</h2>
+        <h2 className="font-heading font-semibold text-foreground mb-3">Anchor instructions</h2>
         <ul className="text-xs text-muted-foreground space-y-2 font-mono">
           {onChainIx.map((line) => (
             <li key={line} className="border-b border-border/50 pb-2 last:border-0">
@@ -354,7 +354,7 @@ export default function EscrowPage() {
 
       <div className="surface overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-heading font-semibold text-foreground">Сделки (GET /api/deals)</h2>
+          <h2 className="font-heading font-semibold text-foreground">Deals (GET /api/deals)</h2>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <AlertTriangle className="h-3.5 w-3.5" />
             GET /api/deals
@@ -362,7 +362,7 @@ export default function EscrowPage() {
         </div>
         {!orchestratorReady ? (
           <div className="p-6 text-sm text-muted-foreground">
-            Список сделок запрашивается у оркестратора. Настройте URL (см. жёлтый блок выше), затем Redeploy.
+            Deal list is loaded from the orchestrator. Configure URL (yellow box above), then Redeploy.
           </div>
         ) : dealsQ.isLoading ? (
           <div className="p-8 flex justify-center">
@@ -371,7 +371,7 @@ export default function EscrowPage() {
         ) : dealsQ.isError ? (
           <div className="p-6 text-sm text-muted-foreground space-y-2">
             <p>
-              Нет связи с <code className="bg-muted px-1 rounded">GET /api/deals</code>.
+              Cannot reach <code className="bg-muted px-1 rounded">GET /api/deals</code>.
             </p>
             <p className="text-destructive text-xs whitespace-pre-wrap leading-relaxed">
               {(dealsQ.error as Error).message}
@@ -380,7 +380,7 @@ export default function EscrowPage() {
         ) : (
           <div className="divide-y divide-border">
             {(dealsQ.data?.deals?.length ?? 0) === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">Пока нет записей — нажми «Запустить seeded demo».</div>
+              <div className="p-6 text-sm text-muted-foreground">No rows yet — click “Run seeded demo”.</div>
             ) : (
               dealsQ.data?.deals.map((d) => (
                 <div key={d.id} className="p-4 grid gap-2 sm:grid-cols-[1fr_auto] text-sm">

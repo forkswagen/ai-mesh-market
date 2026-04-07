@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Локальный агент: WebSocket → оркестратор, LM Studio на этой машине.
- * - oracle_eval — вердикт escrow
- * - lm_chat — произвольный чат с фронта (POST /api/agent/infer)
+ * Local agent: WebSocket → orchestrator, LM Studio on this machine.
+ * - oracle_eval — escrow verdict
+ * - lm_chat — ad-hoc chat from frontend (POST /api/agent/infer)
  *
  *   ORACLE_WORKER_WS_URL=ws://127.0.0.1:8787/ws/oracle-worker npm run oracle-worker --prefix server
  */

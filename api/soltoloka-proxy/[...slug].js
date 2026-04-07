@@ -1,6 +1,6 @@
 /**
- * Vercel catch-all: /api/soltoloka-proxy/* → SolToloka FastAPI (обход CORS).
- * Env: SOLTOLOKA_UPSTREAM_URL (по умолчанию https://soltoloka-backend.vercel.app)
+ * Vercel catch-all: /api/soltoloka-proxy/* → SolToloka FastAPI (CORS bypass).
+ * Env: SOLTOLOKA_UPSTREAM_URL (default https://soltoloka-backend.vercel.app)
  */
 const UPSTREAM = (process.env.SOLTOLOKA_UPSTREAM_URL || "https://soltoloka-backend.vercel.app").replace(
   /\/$/,
@@ -10,8 +10,8 @@ const UPSTREAM = (process.env.SOLTOLOKA_UPSTREAM_URL || "https://soltoloka-backe
 const PREFIX = "/api/soltoloka-proxy";
 
 /**
- * Путь после префикса прокси к upstream (начинается с /).
- * На Vercel иногда req.url — полный путь, иногда без монтирования — добираем из req.query.slug ([...slug]).
+ * Path after proxy prefix to upstream (starts with /).
+ * On Vercel req.url is sometimes full path, sometimes not — fall back to req.query.slug ([...slug]).
  */
 function proxyRestAndSearch(req) {
   const rawUrl = req.url || "/";

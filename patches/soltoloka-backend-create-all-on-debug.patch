@@ -8,7 +8,7 @@
 -    # In production, use Alembic for migrations
 -    # For now, create tables if not exists for quick testing (optional)
 -    pass
-+    """В DEBUG поднимаем схему без Alembic (удобно для локальной связки с Escora)."""
++    """In DEBUG create schema without Alembic (handy for local Escora integration)."""
 +    if settings.DEBUG:
 +        import app.models.user  # noqa: F401
 +        import app.models.node  # noqa: F401
@@ -17,7 +17,7 @@
 +        from app.models.base import Base
 +        async with engine.begin() as conn:
 +            await conn.run_sync(Base.metadata.create_all)
-+        logger.info("DEBUG: SQLAlchemy create_all() — таблицы готовы")
++        logger.info("DEBUG: SQLAlchemy create_all() — tables ready")
  
  @app.get("/")
  async def root():

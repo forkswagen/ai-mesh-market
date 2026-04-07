@@ -1,4 +1,4 @@
-# Один контейнер = Node-оркестратор (папка server/). Railway / Render / Fly: корень контекста = server/
+# One container = Node orchestrator (server/ folder). Railway / Render / Fly: build context root = server/
 FROM node:20-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./

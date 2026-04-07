@@ -1,4 +1,4 @@
--- Кошелёк как учётная запись + регистрация хоста (logical_id) для вебхуков провайдера.
+-- Wallet as account + host registration (logical_id) for provider webhooks.
 CREATE TABLE IF NOT EXISTS wallet_identities (
   wallet_pubkey TEXT PRIMARY KEY,
   last_auth_at BIGINT NOT NULL,

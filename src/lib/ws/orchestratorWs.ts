@@ -1,9 +1,9 @@
 import { getOrchestratorHttpBase } from "@/lib/api/backendOrigin";
 
 /**
- * WebSocket к оркестратору. Явно: VITE_ORCHESTRATOR_WS_URL.
- * Иначе — из HTTP-базы (локальный :8787, отдельный хост или same-origin с rewrites на `/ws`).
- * На классическом Vercel Serverless upgrade может не работать — задайте внешний wss или polling.
+ * WebSocket to the orchestrator. Explicit: VITE_ORCHESTRATOR_WS_URL.
+ * Otherwise derived from HTTP base (local :8787, separate host, or same-origin with `/ws` rewrites).
+ * Classic Vercel Serverless upgrades may fail — set external wss or use polling.
  */
 function wsUrlForPath(path: string): string {
   const wsExplicit = import.meta.env.VITE_ORCHESTRATOR_WS_URL?.trim();
@@ -30,12 +30,12 @@ function wsUrlForPath(path: string): string {
   return u.href;
 }
 
-/** WebSocket к оркестратору: путь `/ws`. */
+/** Deals WebSocket path `/ws`. */
 export function orchestratorWsUrl(): string {
   return wsUrlForPath("/ws");
 }
 
-/** Канал agent (LM Studio): `/ws/agent`. */
+/** Agent channel (LM Studio): `/ws/agent`. */
 export function orchestratorAgentWsUrl(): string {
   return wsUrlForPath("/ws/agent");
 }

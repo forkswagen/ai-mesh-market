@@ -1,17 +1,17 @@
 /**
- * Основной бэкенд фронта — Node-оркестратор (`server/`: escrow, задачи, LM, WebSocket).
+ * Primary frontend backend — Node orchestrator (`server/`: escrow, tasks, LM, WebSocket).
  *
- * - `vite` dev: без `VITE_API_BASE_URL` → `http://127.0.0.1:8787`.
- * - `vite build` + открытие с localhost / 127.0.0.1 (в т.ч. preview): тот же localhost-оркестратор.
- * - Прод на **том же Vercel-проекте**, что и `api/escora` (rewrites `/health`, `/api/*` → `createApp`):
- *   без `VITE_API_BASE_URL` REST идёт на тот же `window.location.origin`.
- * - Либо явно: `VITE_API_BASE_URL` на отдельный публичный URL `server/` (Railway и т.д.) и пересборка.
- * - Опционально устаревший вариант: внешний оркестратор + `ORCHESTRATOR_UPSTREAM_URL` и `/api/orchestrator-proxy`.
+ * - `vite` dev: without `VITE_API_BASE_URL` → `http://127.0.0.1:8787`.
+ * - `vite build` + opening localhost / 127.0.0.1 (incl. preview): same localhost orchestrator.
+ * - Production on the **same Vercel project** as `api/escora` (rewrites `/health`, `/api/*` → `createApp`):
+ *   without `VITE_API_BASE_URL`, REST uses the same `window.location.origin`.
+ * - Or explicitly: `VITE_API_BASE_URL` pointing at a public `server/` URL (Railway, etc.) and rebuild.
+ * - Optional legacy: external orchestrator + `ORCHESTRATOR_UPSTREAM_URL` and `/api/orchestrator-proxy`.
  */
 
 const LOCAL_NODE_ORCHESTRATOR = "http://127.0.0.1:8787";
 
-/** Публичные RPC Solana — не Node-оркестратор Escora; частая путаница с VITE_API_BASE_URL. */
+/** Public Solana RPC hosts — not the Escora Node orchestrator; often confused with VITE_API_BASE_URL. */
 const SOLANA_PUBLIC_RPC_HOSTS = new Set([
   "api.devnet.solana.com",
   "api.mainnet-beta.solana.com",
@@ -19,7 +19,7 @@ const SOLANA_PUBLIC_RPC_HOSTS = new Set([
   "api.mainnet.solana.com",
 ]);
 
-/** Публичный SolToloka FastAPI только для страницы `/soltoloka` (опционально). */
+/** Public SolToloka FastAPI for `/soltoloka` only (optional). */
 export const DEFAULT_SOLToloka_ORIGIN = "https://soltoloka-backend.vercel.app";
 
 export function normalizeOrigin(raw: string): string | null {
@@ -34,7 +34,7 @@ export function normalizeOrigin(raw: string): string | null {
   }
 }
 
-/** true, если URL похож на публичный Solana RPC (его нельзя ставить в VITE_API_BASE_URL). */
+/** True if the URL looks like a public Solana RPC (must not be used as VITE_API_BASE_URL). */
 export function isLikelySolanaPublicRpcOrigin(raw: string): boolean {
   const n = normalizeOrigin(String(raw).trim());
   if (!n) return false;
@@ -45,17 +45,17 @@ export function isLikelySolanaPublicRpcOrigin(raw: string): boolean {
   }
 }
 
-/** Сообщение при ошибочном VITE_API_BASE_URL (RPC вместо оркестратора). */
+/** Message when VITE_API_BASE_URL is an RPC instead of the orchestrator. */
 export function wrongOrchestratorUrlMessage(): string {
   const raw = String(import.meta.env.VITE_API_BASE_URL || "").trim();
   if (!raw || !isLikelySolanaPublicRpcOrigin(raw)) return "";
   return (
-    `VITE_API_BASE_URL=${JSON.stringify(raw)} указывает на публичный RPC Solana, а не на Node-оркестратор Escora (папка server/). ` +
-    `Задайте URL деплоя оркестратора (https://… Railway и т.п.). Для RPC Phantom используйте отдельно VITE_SOLANA_RPC_URL.`
+    `VITE_API_BASE_URL=${JSON.stringify(raw)} points at public Solana RPC, not the Escora Node orchestrator (server/ folder). ` +
+    `Set the orchestrator deploy URL (https://… Railway, etc.). Use VITE_SOLANA_RPC_URL separately for Phantom.`
   );
 }
 
-/** Базовый origin Node-оркестратора (REST, `/health`, `/ws`, `/api/deals`, …). */
+/** Base origin of the Node orchestrator (REST, `/health`, `/ws`, `/api/deals`, …). */
 export function getBackendOrigin(): string {
   const raw = String(import.meta.env.VITE_API_BASE_URL || "").trim();
   const explicit = normalizeOrigin(raw);
@@ -95,8 +95,8 @@ export function getBackendOrigin(): string {
 }
 
 /**
- * Прод-сборка на публичном хосте: оркестратор на том же origin (Vercel `api/escora` + rewrites),
- * без отдельного `VITE_API_BASE_URL`.
+ * Production on a public host: orchestrator on the same origin (Vercel `api/escora` + rewrites),
+ * without a separate `VITE_API_BASE_URL`.
  */
 export function orchestratorEmbeddedSameOrigin(): boolean {
   if (import.meta.env.DEV) return false;
@@ -109,8 +109,8 @@ export function orchestratorEmbeddedSameOrigin(): boolean {
 }
 
 /**
- * Устаревший режим: только REST через `/api/orchestrator-proxy` + `ORCHESTRATOR_UPSTREAM_URL` (внешний server/).
- * Включите `VITE_ORCHESTRATOR_VIA_PROXY=1` в сборке фронта.
+ * Legacy mode: REST only via `/api/orchestrator-proxy` + `ORCHESTRATOR_UPSTREAM_URL` (external server/).
+ * Enable with `VITE_ORCHESTRATOR_VIA_PROXY=1` in the frontend build.
  */
 export function orchestratorHttpViaProxy(): boolean {
   if (import.meta.env.DEV) return false;
@@ -122,7 +122,7 @@ export function orchestratorHttpViaProxy(): boolean {
   return true;
 }
 
-/** База для HTTP к оркестратору: явный URL, same-origin `api/escora`, или legacy-прокси. */
+/** HTTP base for the orchestrator: explicit URL, same-origin `api/escora`, or legacy proxy. */
 export function getOrchestratorHttpBase(): string {
   const direct = getBackendOrigin();
   if (direct) return direct;
@@ -135,14 +135,13 @@ export function getOrchestratorHttpBase(): string {
   return "";
 }
 
-/** Есть ли настроенный путь к оркестратору по HTTP. */
+/** Whether an HTTP path to the orchestrator is configured. */
 export function isOrchestratorOriginConfigured(): boolean {
   return Boolean(getOrchestratorHttpBase());
 }
 
-/** Доступен ли заявленный путь для WebSocket (попытка same-origin `/ws` на Vercel может не сработать на Serverless). */
+/** Whether WebSocket can be attempted (same-origin `/ws` on Vercel Serverless may fail). */
 export function orchestratorWsConfigured(): boolean {
   if (import.meta.env.VITE_ORCHESTRATOR_WS_URL?.trim()) return true;
   return Boolean(getOrchestratorHttpBase()) || import.meta.env.DEV;
 }
-

@@ -1,4 +1,4 @@
--- Задачи маркетплейса (только наша БД, без Verbitto / on-chain привязок).
+-- Marketplace tasks (our DB only, no Verbitto / on-chain links).
 CREATE TABLE IF NOT EXISTS platform_tasks (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,

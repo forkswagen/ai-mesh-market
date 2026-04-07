@@ -3,7 +3,7 @@ export type InjectedSolana = {
   publicKey?: { toBase58(): string };
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toBase58(): string } }>;
   disconnect: () => Promise<void>;
-  /** Phantom: подпись UTF-8 сообщения (SIWS / регистрация агента). */
+  /** Phantom: UTF-8 message signature (SIWS / agent registration). */
   signMessage?: (opts: { message: Uint8Array }) => Promise<{ signature: Uint8Array }>;
   on?: (event: "accountChanged", handler: (pubkey: { toBase58(): string } | undefined) => void) => void;
   removeListener?: (
@@ -12,7 +12,7 @@ export type InjectedSolana = {
   ) => void;
 };
 
-/** Phantom: официальный провайдер часто только в `window.phantom.solana`; `window.solana` может быть занят другим кошельком. */
+/** Phantom: official provider is often `window.phantom.solana`; `window.solana` may be another wallet. */
 export function resolvePhantomProvider(): InjectedSolana | undefined {
   if (typeof window === "undefined") return undefined;
   const fromPhantomNs = window.phantom?.solana;

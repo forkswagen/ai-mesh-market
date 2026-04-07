@@ -1,5 +1,5 @@
--- Схема оркестратора для PostgreSQL (Neon и т.д.).
--- Идемпотентно: безопасно при повторном применении вручную.
+-- Orchestrator schema for PostgreSQL (Neon, etc.).
+-- Idempotent: safe to re-apply manually.
 
 CREATE TABLE IF NOT EXISTS deals (
   id TEXT PRIMARY KEY,

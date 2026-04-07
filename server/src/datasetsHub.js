@@ -1,5 +1,5 @@
 /**
- * Прокси к публичным каталогам датасетов (Hugging Face Hub, Kaggle list API).
+ * Proxy to public dataset catalogs (Hugging Face Hub, Kaggle list API).
  */
 
 const HF_BASE = "https://huggingface.co/api/datasets";
@@ -13,7 +13,7 @@ function clampInt(n, min, max, fallback) {
 
 const HUB_HEADERS = {
   Accept: "application/json",
-  /** Без UA часть CDN отдаёт HTML-страницу вместо JSON. */
+  /** Without User-Agent some CDNs return HTML instead of JSON. */
   "User-Agent": "Mozilla/5.0 (compatible; Escora-Orchestrator/1.0; +https://github.com/)",
 };
 
@@ -27,14 +27,14 @@ async function readJsonArrayResponse(res, label) {
   const head = text.trimStart().slice(0, 1);
   if (ct.includes("text/html") || head === "<") {
     throw new Error(
-      `${label} вернул HTML вместо JSON (блокировка, капча или неверный URL). Начало ответа: ${text.slice(0, 100)}`,
+      `${label} returned HTML instead of JSON (block, captcha, or bad URL). Response start: ${text.slice(0, 100)}`,
     );
   }
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`${label}: не JSON — ${text.slice(0, 160)}`);
+    throw new Error(`${label}: not JSON — ${text.slice(0, 160)}`);
   }
   return data;
 }

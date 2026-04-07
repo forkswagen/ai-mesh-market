@@ -107,9 +107,9 @@ export default function AgentsPage() {
   const registerM = useMutation({
     mutationFn: async () => {
       const w = wallet.address?.trim();
-      if (!w) throw new Error("Подключите кошелёк (Phantom)");
+      if (!w) throw new Error("Connect wallet (Phantom)");
       const rawId = regLogicalId.trim();
-      if (!rawId) throw new Error("Укажите logicalId (как у oracle-worker)");
+      if (!rawId) throw new Error("Enter logicalId (same as oracle-worker)");
       const { message, logicalId } = await postAgentsChallenge({ wallet: w, logicalId: rawId });
       const signatureBase64 = await wallet.signUtf8Message(message);
       return postAgentsRegister({
@@ -122,8 +122,8 @@ export default function AgentsPage() {
       });
     },
     onSuccess: () => {
-      toast.success("Агент зарегистрирован", {
-        description: "Кошелёк привязан; вебхуки при online/offline — если задан URL и секрет на сервере.",
+      toast.success("Agent registered", {
+        description: "Wallet linked; online/offline webhooks fire when URL and signing secret are set on the server.",
       });
       void qc.invalidateQueries({ queryKey: ["orchestrator", "agents-registry", api] });
     },
@@ -144,9 +144,9 @@ export default function AgentsPage() {
     mutationFn: async () => {
       const row = (liveQ.data ?? []).find((a) => a.sessionId === selectedSessionId);
       const id = row?.logicalId?.trim() ?? "";
-      if (!id) throw new Error("Выберите live-агента");
+      if (!id) throw new Error("Select a live agent");
       const text = prompt.trim();
-      if (!text) throw new Error("Введите сообщение");
+      if (!text) throw new Error("Enter a message");
       const temp = Number(temperature);
       return postAgentInfer({
         agentId: id,
@@ -157,7 +157,7 @@ export default function AgentsPage() {
     },
     onSuccess: (data) => {
       setLastReply(data.text ?? "");
-      toast.success("Ответ получен", { description: data.agentLogicalId });
+      toast.success("Reply received", { description: data.agentLogicalId });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -170,11 +170,11 @@ export default function AgentsPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
           <Bot className="h-8 w-8 text-primary shrink-0" />
-          Агенты
+          Agents
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Один экран: <strong className="text-foreground/90">Escora</strong> (Node-оркестратор + WebSocket + LM Studio) и{" "}
-          <strong className="text-foreground/90">SolToloka</strong> (GPU-ноды, отдельный FastAPI). Проверка связи с сервером — блок ниже.
+          One screen: <strong className="text-foreground/90">Escora</strong> (Node orchestrator + WebSocket + LM Studio) and{" "}
+          <strong className="text-foreground/90">SolToloka</strong> (GPU nodes, separate FastAPI). Server connectivity — panel below.
         </p>
       </div>
 
@@ -182,11 +182,11 @@ export default function AgentsPage() {
         <div className="surface p-4 border border-amber-500/35 bg-amber-500/5 text-sm space-y-2">
           <p className="font-heading font-semibold text-foreground flex items-center gap-2">
             <Activity className="h-4 w-4 text-amber-600" />
-            Оркестратор Escora (отдельный backend)
+            Escora orchestrator (separate backend)
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">{escoraConfigBanner}</p>
           <p className="text-xs text-muted-foreground">
-            Вкладка <strong className="text-foreground/90">SolToloka · GPU</strong> — другой API (может работать через прокси без{" "}
+            Tab <strong className="text-foreground/90">SolToloka · GPU</strong> uses a different API (can work via proxy without{" "}
             <code className="bg-muted px-0.5 rounded">VITE_API_BASE_URL</code>).
           </p>
         </div>
@@ -200,7 +200,7 @@ export default function AgentsPage() {
       >
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <Activity className={`h-4 w-4 ${healthQ.isSuccess ? "text-green-500" : healthQ.isError ? "text-destructive" : "text-muted-foreground"}`} />
-          <span className="font-heading font-semibold text-foreground">Связь с оркестратором Escora</span>
+          <span className="font-heading font-semibold text-foreground">Escora orchestrator connectivity</span>
           <code className="text-[10px] bg-muted px-1 rounded truncate max-w-[220px]" title={api || undefined}>
             {api || "—"}
           </code>
@@ -236,14 +236,14 @@ export default function AgentsPage() {
               )}
             </p>
             <p>
-              <span className="text-muted-foreground">Live-агентов (WS):</span>{" "}
+              <span className="text-muted-foreground">Live agents (WS):</span>{" "}
               <span className="text-foreground">{liveQ.isSuccess ? liveCount : "…"}</span>
               {liveQ.isSuccess && (
-                <span className="text-muted-foreground"> · accepting &amp; свободен: {acceptingCount}</span>
+                <span className="text-muted-foreground"> · accepting &amp; idle: {acceptingCount}</span>
               )}
             </p>
             <p className="text-muted-foreground sm:col-span-2">
-              Диагностика вручную:{" "}
+              Manual check:{" "}
               <a className="text-primary hover:underline" href={api ? apiUrl("/api/meta") : "#"} target="_blank" rel="noreferrer">
                 /api/meta
               </a>
@@ -274,7 +274,7 @@ export default function AgentsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-heading font-semibold text-sm flex items-center gap-2">
             <Link2 className="h-4 w-4 text-violet-400" />
-            Регистрация агента (кошелёк → logicalId)
+            Agent registration (wallet → logicalId)
           </h2>
           <Button
             type="button"
@@ -285,13 +285,13 @@ export default function AgentsPage() {
             onClick={() => void qc.invalidateQueries({ queryKey: ["orchestrator", "agents-registry", api] })}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${registryQ.isFetching ? "animate-spin" : ""}`} />
-            Реестр
+            Registry
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Оркестратор проверяет подпись сообщения{" "}
-          <code className="bg-muted px-0.5 rounded">escora:register-agent:…</code>. После регистрации на ваш{" "}
-          <code className="bg-muted px-0.5 rounded">webhook</code> уходят события{" "}
+          The orchestrator verifies the message signature{" "}
+          <code className="bg-muted px-0.5 rounded">escora:register-agent:…</code>. After registration your{" "}
+          <code className="bg-muted px-0.5 rounded">webhook</code> receives{" "}
           <code className="bg-muted px-0.5 rounded">agent.connected</code> /{" "}
           <code className="bg-muted px-0.5 rounded">agent.disconnected</code> (HMAC:{" "}
           <code className="bg-muted px-0.5 rounded">AGENT_WEBHOOK_SIGNING_SECRET</code>).
@@ -304,10 +304,10 @@ export default function AgentsPage() {
               {wallet.address}
             </Badge>
           ) : (
-            <span className="text-xs text-muted-foreground">Кошелёк не подключён</span>
+            <span className="text-xs text-muted-foreground">Wallet not connected</span>
           )}
           <Button type="button" size="sm" variant={wallet.connected ? "outline" : "default"} disabled={wallet.connecting} onClick={() => void (wallet.connected ? wallet.disconnect() : wallet.connect())}>
-            {wallet.connected ? "Отключить" : "Подключить Phantom"}
+            {wallet.connected ? "Disconnect" : "Connect Phantom"}
           </Button>
         </div>
 
@@ -323,12 +323,12 @@ export default function AgentsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reg-display">Отображаемое имя (опц.)</Label>
-            <Input id="reg-display" value={regDisplayName} onChange={(e) => setRegDisplayName(e.target.value)} placeholder="Мой хост" />
+            <Label htmlFor="reg-display">Display name (optional)</Label>
+            <Input id="reg-display" value={regDisplayName} onChange={(e) => setRegDisplayName(e.target.value)} placeholder="My host" />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="reg-webhook">Webhook URL (опц.)</Label>
+          <Label htmlFor="reg-webhook">Webhook URL (optional)</Label>
           <Input
             id="reg-webhook"
             value={regWebhookUrl}
@@ -345,12 +345,12 @@ export default function AgentsPage() {
           onClick={() => registerM.mutate()}
         >
           {registerM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-          Подписать и зарегистрировать
+          Sign and register
         </Button>
 
         {registryQ.isError && (
           <p className="text-sm text-destructive">
-            {registryQ.error instanceof Error ? registryQ.error.message : "Ошибка реестра"}
+            {registryQ.error instanceof Error ? registryQ.error.message : "Registry error"}
           </p>
         )}
 
@@ -360,8 +360,8 @@ export default function AgentsPage() {
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="p-2 font-medium">logicalId</th>
-                  <th className="p-2 font-medium">кошелёк</th>
-                  <th className="p-2 font-medium">имя</th>
+                  <th className="p-2 font-medium">wallet</th>
+                  <th className="p-2 font-medium">name</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,7 +384,7 @@ export default function AgentsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-heading font-semibold text-sm flex items-center gap-2">
             <Server className="h-4 w-4 text-cyan-400" />
-            Через выбранного агента
+            Via selected agent
           </h2>
           <Button
             type="button"
@@ -395,58 +395,58 @@ export default function AgentsPage() {
             onClick={() => void qc.invalidateQueries({ queryKey: ["orchestrator", "agent-live", api] })}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${liveQ.isFetching ? "animate-spin" : ""}`} />
-            Обновить список
+            Refresh list
           </Button>
         </div>
 
         {!orchestratorReady && (
           <p className="text-sm text-muted-foreground">
-            Список live-агентов запрашивается у оркестратора Escora — задайте{" "}
-            <code className="bg-muted px-1 rounded text-xs">VITE_API_BASE_URL</code> и пересоберите фронт (инструкция в блоке выше).
+            Live agents are fetched from the Escora orchestrator — set{" "}
+            <code className="bg-muted px-1 rounded text-xs">VITE_API_BASE_URL</code> and rebuild the frontend (see panel above).
           </p>
         )}
         {orchestratorReady && liveQ.isError && (
           <p className="text-sm text-destructive">
-            {liveQ.error instanceof Error ? liveQ.error.message : "Ошибка загрузки агентов"}
+            {liveQ.error instanceof Error ? liveQ.error.message : "Failed to load agents"}
           </p>
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Live-агент (logicalId)</Label>
+            <Label>Live agent (logicalId)</Label>
             <Select
               disabled={!orchestratorReady}
               value={selectedSessionId || "__none__"}
               onValueChange={(v) => setSelectedSessionId(v === "__none__" ? "" : v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Выберите подключённый хост…" />
+                <SelectValue placeholder="Select a connected host…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">— не выбран —</SelectItem>
+                <SelectItem value="__none__">— none —</SelectItem>
                 {(liveQ.data ?? []).map((a) => (
                   <SelectItem key={a.sessionId} value={a.sessionId}>
-                    {a.name} ({a.logicalId}){a.accepting ? "" : " · выкл."}
+                    {a.name} ({a.logicalId}){a.accepting ? "" : " · off"}
                     {a.busy ? " · busy" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-[10px] text-muted-foreground">
-              В списке только агенты с открытым WebSocket. Локальная панель:{" "}
+              Only agents with an open WebSocket appear here. Local panel:{" "}
               <code className="bg-muted px-0.5 rounded">npm run agent-host:panel</code> (
               <code className="bg-muted px-0.5 rounded">streamlit/agent_host_panel.py</code>
-              , LM Studio + accepting) или API{" "}
+              , LM Studio + accepting) or API{" "}
               <code className="bg-muted px-0.5 rounded">/api/agent/control/accepting</code>.
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="infer-model">Модель LM (опционально)</Label>
+            <Label htmlFor="infer-model">LM model (optional)</Label>
             <Input
               id="infer-model"
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="Пусто = local-model / ORACLE_LLM_MODEL на хосте"
+              placeholder="Empty = local-model / ORACLE_LLM_MODEL on host"
               className="font-mono text-xs"
               disabled={!orchestratorReady}
             />
@@ -464,12 +464,12 @@ export default function AgentsPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="infer-prompt">Сообщение</Label>
+          <Label htmlFor="infer-prompt">Message</Label>
           <Textarea
             id="infer-prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Текст уходит на бэкенд как POST /api/agent/infer → ваш агент → LM Studio…"
+            placeholder="Text is sent to the backend as POST /api/agent/infer → your agent → LM Studio…"
             className="min-h-[120px]"
             disabled={!orchestratorReady}
           />
@@ -483,14 +483,14 @@ export default function AgentsPage() {
             onClick={() => inferM.mutate()}
             title={
               !orchestratorReady
-                ? "Задайте VITE_API_BASE_URL"
+                ? "Set VITE_API_BASE_URL"
                 : acceptingAgents.length === 0
-                  ? "Нет агентов accepting или все busy"
+                  ? "No accepting agents or all busy"
                   : ""
             }
           >
             {inferM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Отправить
+            Send
           </Button>
           <Button
             type="button"
@@ -502,16 +502,16 @@ export default function AgentsPage() {
               const first = acceptingAgents[0];
               if (first) setSelectedSessionId(first.sessionId);
               setPrompt("ping");
-              toast.message("Подставлено: первый accepting-агент и текст «ping» — нажмите Отправить.");
+              toast.message("Prefilled: first accepting agent and “ping” — click Send.");
             }}
           >
-            Тест: ping
+            Test: ping
           </Button>
         </div>
 
         {acceptingAgents.length === 0 && liveQ.isSuccess && (liveQ.data?.length ?? 0) > 0 && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            Все агенты сейчас с выключенным приёмом или заняты. Включите хост в Streamlit-панели.
+            All agents have accepting off or are busy. Enable the host in the Streamlit panel.
           </p>
         )}
 
@@ -523,7 +523,7 @@ export default function AgentsPage() {
       </div>
 
       <div>
-        <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Витрина (демо-мок)</h2>
+        <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Showcase (demo mock)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {showcase.map((a) => (
             <div key={a.name} className="surface p-5 opacity-80">
@@ -553,7 +553,7 @@ export default function AgentsPage() {
               <div className="flex justify-between pt-3 border-t border-border">
                 <span className="font-heading font-bold text-primary text-sm">{a.price}</span>
                 <Button size="sm" variant="secondary" disabled className="text-xs">
-                  Мок
+                  Mock
                 </Button>
               </div>
             </div>

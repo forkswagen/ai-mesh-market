@@ -1,5 +1,5 @@
 /**
- * Регистрация агента (кошелёк + logicalId), исходящие вебхуки при online/offline.
+ * Agent registration (wallet + logicalId), outgoing webhooks on online/offline.
  */
 import { randomUUID, createHmac } from "node:crypto";
 import {
@@ -10,7 +10,7 @@ import {
 } from "./db.js";
 import { verifySolanaMessageSignature } from "./walletVerify.js";
 
-/** Должен совпадать с нормализацией в oracle-worker pool (?id=). */
+/** Must match normalization in oracle-worker pool (?id=). */
 export function sanitizeAgentLogicalId(raw) {
   const s = String(raw || "")
     .trim()

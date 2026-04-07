@@ -1,8 +1,8 @@
 /**
- * Поиск датасетов идёт напрямую из браузера:
- * - Hugging Face отражает Origin в Access-Control-Allow-Origin.
- * - Kaggle отдаёт Access-Control-Allow-Origin: *.
- * Оркестратор для этого не обязателен.
+ * Dataset search runs directly from the browser:
+ * - Hugging Face echoes Origin in Access-Control-Allow-Origin.
+ * - Kaggle returns Access-Control-Allow-Origin: *.
+ * The orchestrator is not required for this.
  */
 const HF_DATASETS_API = "https://huggingface.co/api/datasets";
 const KAGGLE_DATASETS_LIST = "https://www.kaggle.com/api/v1/datasets/list";
@@ -11,13 +11,13 @@ function parseJsonBody<T>(text: string, label: string): T {
   const t = text.trim();
   if (t.startsWith("<") || t.startsWith("<!DOCTYPE")) {
     throw new Error(
-      `${label}: вместо JSON пришла HTML-страница (ограничение сети или антибот). Попробуйте позже или другой запрос.`,
+      `${label}: got HTML instead of JSON (network restriction or bot block). Retry later or change the query.`,
     );
   }
   try {
     return JSON.parse(t) as T;
   } catch {
-    throw new Error(`${label}: не JSON — ${t.slice(0, 160)}`);
+    throw new Error(`${label}: not JSON — ${t.slice(0, 160)}`);
   }
 }
 
@@ -102,7 +102,7 @@ export async function fetchHuggingFaceHub(q: string, limit = 24): Promise<HubDat
   }
   const data = parseJsonBody<unknown>(raw, "Hugging Face");
   if (!Array.isArray(data)) {
-    throw new Error("Hugging Face: неожиданный формат ответа");
+    throw new Error("Hugging Face: unexpected response shape");
   }
   return data
     .slice(0, lim)
@@ -123,7 +123,7 @@ export async function fetchKaggleHub(q: string, pageSize = 20): Promise<HubDatas
   }
   const data = parseJsonBody<unknown>(raw, "Kaggle");
   if (!Array.isArray(data)) {
-    throw new Error("Kaggle: неожиданный формат ответа");
+    throw new Error("Kaggle: unexpected response shape");
   }
   return data.slice(0, ps).map((row) => mapKaggleRow(row as Record<string, unknown>));
 }

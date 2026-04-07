@@ -28,7 +28,7 @@ import { fetchHuggingFaceDatasets, fetchKaggleDatasets } from "./datasetsHub.js"
 const SERVER_SRC_DIR = dirname(fileURLToPath(import.meta.url));
 const API_REVISION = 4;
 
-/** CORS: VITE_DEV_ORIGIN может быть несколько origin через запятую (локал + Vercel). */
+/** CORS: VITE_DEV_ORIGIN may list multiple comma-separated origins (local + Vercel). */
 function corsOrigins() {
   const raw = process.env.VITE_DEV_ORIGIN || "http://localhost:5173";
   const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
@@ -249,7 +249,7 @@ export function createApp() {
   app.post("/api/agent/infer", async (req, res) => {
     const { agentId, messages, model, temperature } = req.body || {};
     if (typeof agentId !== "string" || !agentId.trim()) {
-      return res.status(400).json({ ok: false, error: "agentId (logicalId агента) обязателен" });
+      return res.status(400).json({ ok: false, error: "agentId (agent logicalId) is required" });
     }
     try {
       const out = await runChatThroughAgent(

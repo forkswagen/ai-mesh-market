@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: ListTodo },
-  { title: "Датасеты", url: "/datasets", icon: Database },
-  { title: "Агенты", url: "/agents", icon: Bot },
+  { title: "Datasets", url: "/datasets", icon: Database },
+  { title: "Agents", url: "/agents", icon: Bot },
   { title: "AI Escrow", url: "/escrow", icon: Shield },
 ];
 
@@ -36,7 +36,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link
           to="/"
-          title="На главную (лендинг)"
+          title="Home (landing)"
           className="flex items-center gap-2 rounded-md outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent/80 focus-visible:ring-2 -m-1 p-1"
         >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
@@ -54,7 +54,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground/60 text-xs uppercase tracking-wider">
-            {!collapsed ? "Платформа" : ""}
+            {!collapsed ? "Platform" : ""}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -88,7 +88,7 @@ export function AppSidebar() {
                 activeClassName="bg-sidebar-accent text-primary font-medium"
               >
                 <Settings className="h-4 w-4 flex-shrink-0" />
-                {!collapsed && <span className="text-sm">Настройки</span>}
+                {!collapsed && <span className="text-sm">Settings</span>}
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -115,21 +115,21 @@ export function AppSidebar() {
                     <>
                       {w.solBalance.toFixed(4)} SOL
                       <span className="block text-[10px] text-muted-foreground font-normal mt-0.5">
-                        сеть: см. VITE_SOLANA_RPC_URL (devnet)
+                        network: see VITE_SOLANA_RPC_URL (devnet)
                       </span>
                     </>
                   ) : (
-                    "SOL — недоступно"
+                    "SOL — unavailable"
                   )}
                 </p>
                 <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => void w.disconnect()}>
-                  Отключить
+                  Disconnect
                 </Button>
               </>
             ) : (
               <>
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  Подключи Phantom для реального адреса и баланса SOL. NXS в демо — оффчейн-единица UI.
+                  Connect Phantom for a real address and SOL balance. NXS in the demo is an off-chain UI unit.
                 </p>
                 <Button
                   size="sm"
@@ -140,9 +140,9 @@ export function AppSidebar() {
                   {w.connecting ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : w.hasPhantom ? (
-                    "Подключить"
+                    "Connect"
                   ) : (
-                    "Нет Phantom"
+                    "No Phantom"
                   )}
                 </Button>
               </>

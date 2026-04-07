@@ -14,7 +14,7 @@ export default function AppHeader() {
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Поиск задач, датасетов, агентов..."
+            placeholder="Search tasks, datasets, agents..."
             className="w-80 pl-9 h-9 bg-muted border-border text-sm placeholder:text-muted-foreground/60"
           />
         </div>
@@ -36,7 +36,7 @@ export default function AppHeader() {
         >
           <Wallet className="h-4 w-4 shrink-0" />
           <span className="hidden sm:inline text-xs font-mono truncate">
-            {w.connected && w.address ? truncateSolanaAddress(w.address) : "Кошелёк"}
+            {w.connected && w.address ? truncateSolanaAddress(w.address) : "Wallet"}
           </span>
         </Button>
         <div className="w-8 h-8 rounded-full bg-secondary/20 border border-secondary/30 flex items-center justify-center">

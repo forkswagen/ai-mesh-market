@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input";
 import { fetchHuggingFaceHub, fetchKaggleHub, type HubDatasetItem } from "@/lib/api/datasetsHub";
 
 const demoDatasets = [
-  { name: "ImageNet-XL Annotations", type: "Изображения", icon: Image, size: "2.3M записей", quality: 4.8, price: "500 NXS", tags: ["CV", "Classification"], seller: "DataLab" },
-  { name: "Multilingual TTS Corpus", type: "Аудио", icon: Mic, size: "890K сэмплов", quality: 4.5, price: "320 NXS", tags: ["TTS", "Multilingual"], seller: "VoiceForge" },
-  { name: "Reddit QA Dataset", type: "Текст", icon: FileText, size: "5.1M пар", quality: 4.2, price: "180 NXS", tags: ["NLP", "QA"], seller: "TextMine" },
-  { name: "Video Action Recognition", type: "Мультимодальный", icon: Layers, size: "120K видео", quality: 4.9, price: "1200 NXS", tags: ["Video", "Action"], seller: "MotionAI" },
-  { name: "Medical X-Ray Labeled", type: "Изображения", icon: Image, size: "340K снимков", quality: 4.7, price: "800 NXS", tags: ["Medical", "CV"], seller: "HealthData" },
-  { name: "Code Completion Pairs", type: "Текст", icon: FileText, size: "8.2M пар", quality: 4.6, price: "450 NXS", tags: ["Code", "NLP"], seller: "CodeBridge" },
+  { name: "ImageNet-XL Annotations", type: "Images", icon: Image, size: "2.3M records", quality: 4.8, price: "500 NXS", tags: ["CV", "Classification"], seller: "DataLab" },
+  { name: "Multilingual TTS Corpus", type: "Audio", icon: Mic, size: "890K samples", quality: 4.5, price: "320 NXS", tags: ["TTS", "Multilingual"], seller: "VoiceForge" },
+  { name: "Reddit QA Dataset", type: "Text", icon: FileText, size: "5.1M pairs", quality: 4.2, price: "180 NXS", tags: ["NLP", "QA"], seller: "TextMine" },
+  { name: "Video Action Recognition", type: "Multimodal", icon: Layers, size: "120K videos", quality: 4.9, price: "1200 NXS", tags: ["Video", "Action"], seller: "MotionAI" },
+  { name: "Medical X-Ray Labeled", type: "Images", icon: Image, size: "340K scans", quality: 4.7, price: "800 NXS", tags: ["Medical", "CV"], seller: "HealthData" },
+  { name: "Code Completion Pairs", type: "Text", icon: FileText, size: "8.2M pairs", quality: 4.6, price: "450 NXS", tags: ["Code", "NLP"], seller: "CodeBridge" },
 ];
 
-const categories = ["Все", "Изображения", "Аудио", "Текст", "Мультимодальный"];
-const typeIcon: Record<string, ElementType> = { Изображения: Image, Аудио: Mic, Текст: FileText, Мультимодальный: Layers };
+const categories = ["All", "Images", "Audio", "Text", "Multimodal"];
+const typeIcon: Record<string, ElementType> = { Images: Image, Audio: Mic, Text: FileText, Multimodal: Layers };
 
 type SourceTab = "demo" | "huggingface" | "kaggle";
 
@@ -29,10 +29,8 @@ function formatBytes(n?: number): string | null {
 }
 
 function hubSubtitle(item: HubDatasetItem): string {
-  const parts: string[] = [];
-  if (item.source === "huggingface") parts.push("Hugging Face");
-  else parts.push("Kaggle");
-  const dl = item.downloads != null ? `${item.downloads.toLocaleString()} загрузок` : null;
+  const parts: string[] = item.source === "huggingface" ? ["Hugging Face"] : ["Kaggle"];
+  const dl = item.downloads != null ? `${item.downloads.toLocaleString()} downloads` : null;
   if (dl) parts.push(dl);
   const sz = formatBytes(item.sizeBytes);
   if (sz) parts.push(sz);
@@ -41,7 +39,7 @@ function hubSubtitle(item: HubDatasetItem): string {
 }
 
 export default function DatasetsPage() {
-  const [cat, setCat] = useState("Все");
+  const [cat, setCat] = useState("All");
   const [search, setSearch] = useState("");
   const [debouncedHubSearch, setDebouncedHubSearch] = useState("");
   const [source, setSource] = useState<SourceTab>("demo");
@@ -70,7 +68,7 @@ export default function DatasetsPage() {
   const filteredDemo = useMemo(
     () =>
       demoDatasets.filter(
-        (d) => (cat === "Все" || d.type === cat) && d.name.toLowerCase().includes(search.toLowerCase()),
+        (d) => (cat === "All" || d.type === cat) && d.name.toLowerCase().includes(search.toLowerCase()),
       ),
     [cat, search],
   );
@@ -79,10 +77,10 @@ export default function DatasetsPage() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Маркетплейс датасетов · Escora</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Dataset marketplace · Escora</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Демо-каталог; вкладки HF / Kaggle ходят{" "}
-            <span className="text-foreground/90">напрямую</span> в публичные API (
+            Demo catalog; HF / Kaggle tabs call{" "}
+            <span className="text-foreground/90">public</span> APIs (
             <a className="text-primary hover:underline" href="https://huggingface.co/datasets" target="_blank" rel="noreferrer">
               Hugging Face
             </a>
@@ -90,18 +88,16 @@ export default function DatasetsPage() {
             <a className="text-primary hover:underline" href="https://www.kaggle.com/datasets" target="_blank" rel="noreferrer">
               Kaggle
             </a>
-            ) — бэкенд не нужен
+            ) — no backend required
           </p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm w-fit">
-          + Опубликовать датасет
-        </Button>
+        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm w-fit">+ Publish dataset</Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ["demo", "Демо Escora"],
+            ["demo", "Escora demo"],
             ["huggingface", "Hugging Face"],
             ["kaggle", "Kaggle"],
           ] as const
@@ -127,7 +123,7 @@ export default function DatasetsPage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={source === "demo" ? "Поиск датасетов…" : "Поиск в каталоге (запрос к API)…"}
+            placeholder={source === "demo" ? "Search datasets…" : "Search catalog (API query)…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-muted border-border text-sm"
@@ -154,9 +150,9 @@ export default function DatasetsPage() {
 
       {source !== "demo" && (
         <p className="text-xs text-muted-foreground">
-          {hubQuery.isFetching ? "Загрузка…" : hubQuery.isError ? String(hubQuery.error) : null}
+          {hubQuery.isFetching ? "Loading…" : hubQuery.isError ? String(hubQuery.error) : null}
           {!hubQuery.isFetching && !hubQuery.isError && hubQuery.data != null
-            ? `Найдено: ${hubQuery.data.length} (источник: ${source})`
+            ? `Found: ${hubQuery.data.length} (source: ${source})`
             : null}
         </p>
       )}
@@ -201,7 +197,7 @@ export default function DatasetsPage() {
                     <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                   </Button>
                   <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs h-8">
-                    <Download className="h-3.5 w-3.5 mr-1" /> Купить
+                    <Download className="h-3.5 w-3.5 mr-1" /> Buy
                   </Button>
                 </div>
               </div>
@@ -211,13 +207,13 @@ export default function DatasetsPage() {
       )}
 
       {source !== "demo" && !hubQuery.isFetching && hubQuery.data?.length === 0 && !hubQuery.isError && (
-        <p className="text-sm text-muted-foreground">По запросу ничего не найдено — попробуйте другой текст.</p>
+        <p className="text-sm text-muted-foreground">Nothing found for this query — try different text.</p>
       )}
 
       {source !== "demo" && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {hubQuery.data?.map((item) => {
-            const Icon = typeIcon["Текст"];
+            const Icon = typeIcon.Text;
             return (
               <div key={`${item.source}-${item.id}`} className="surface p-5 hover-lift group">
                 <div className="flex items-start justify-between mb-3 gap-2">
@@ -253,7 +249,7 @@ export default function DatasetsPage() {
                   <Button size="sm" variant="outline" className="text-xs h-8" asChild>
                     <a href={item.url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                      Открыть
+                      Open
                     </a>
                   </Button>
                 </div>

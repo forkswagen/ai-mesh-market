@@ -1,6 +1,6 @@
-# Postgres + Redis для soltoloka-backend (FastAPI :8000).
-# Запуск: npm run soltoloka:db
-# Затем в soltoloka-backend: cp .env.example .env, pip install, uvicorn app.main:app --reload --port 8000
+# Postgres + Redis for soltoloka-backend (FastAPI :8000).
+# Run: npm run soltoloka:db
+# Then in soltoloka-backend: cp .env.example .env, pip install, uvicorn app.main:app --reload --port 8000
 
 services:
   soltoloka-postgres:

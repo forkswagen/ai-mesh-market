@@ -2,7 +2,7 @@ import { apiUrl } from "./env";
 import { orchestratorConnectionHint } from "./connectionHints";
 
 /**
- * Fetch к оркестратору с сообщением при сетевых ошибках (CORS, mixed content, недоступный хост).
+ * Fetch to the orchestrator with clearer errors on network failures (CORS, mixed content, down host).
  */
 export async function orchestratorFetch(path: string, init?: RequestInit): Promise<Response> {
   const url = apiUrl(path);
@@ -17,12 +17,12 @@ export async function orchestratorFetch(path: string, init?: RequestInit): Promi
     if (!isNetwork) throw e;
 
     const origin =
-      typeof window !== "undefined" ? window.location.origin : "(не браузер)";
+      typeof window !== "undefined" ? window.location.origin : "(not browser)";
     const extra = [
       orchestratorConnectionHint(),
-      `Запрос шёл на: ${url}.`,
-      `Origin страницы: ${origin} — этот origin должен быть в списке VITE_DEV_ORIGIN на server (через запятую, без слэша в конце).`,
-      "Если фронт на HTTPS, а VITE_API_BASE_URL с http:// — браузер заблокирует (mixed content): нужен https:// у оркестратора.",
+      `Request went to: ${url}.`,
+      `Page origin: ${origin} — it must be listed in VITE_DEV_ORIGIN on server (comma-separated, no trailing slash).`,
+      "If the frontend is HTTPS but VITE_API_BASE_URL is http:// — the browser blocks mixed content; orchestrator needs https://.",
     ].join(" ");
 
     throw new Error(`${msg}. ${extra}`);

@@ -2,7 +2,7 @@ import { orchestratorFetch } from "./orchestratorFetch";
 
 const STORAGE_KEY = "depai_access_token";
 
-/** Dev: кошелёк для challenge/verify (на бэке при SOLANA_MOCK подпись не проверяется). */
+/** Dev: wallet for challenge/verify (with SOLANA_MOCK on the backend signature may be skipped). */
 const devWallet = () => import.meta.env.VITE_DEPAI_DEV_WALLET?.trim() || "";
 
 export function getDepaiAccessToken(): string | null {
@@ -13,7 +13,7 @@ export function clearDepaiAccessToken(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-/** Получить JWT для /api/deals (опционально). Без VITE_DEPAI_DEV_WALLET список будет пустым. */
+/** Obtain JWT for /api/deals (optional). Without VITE_DEPAI_DEV_WALLET the list may be empty. */
 export async function ensureDepaiToken(): Promise<string | null> {
   const w = devWallet();
   if (!w) return null;

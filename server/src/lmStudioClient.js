@@ -1,5 +1,5 @@
 /**
- * LM Studio (OpenAI-compatible) — только с backend; фронт ходит в оркестратор.
+ * LM Studio (OpenAI-compatible) — backend only; frontend calls orchestrator.
  */
 
 export function getLmStudioBaseUrl() {
