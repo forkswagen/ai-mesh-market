@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
-import { missingViteApiBaseUrlMessage } from "@/lib/api/connectionHints";
+import { frontendUrlAsOrchestratorApiMessage, missingViteApiBaseUrlMessage } from "@/lib/api/connectionHints";
 import { isOrchestratorOriginConfigured, wrongOrchestratorUrlMessage } from "@/lib/api/backendOrigin";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
@@ -59,7 +59,8 @@ export default function EscrowPage() {
   const qc = useQueryClient();
   const wrongRpcUrl = wrongOrchestratorUrlMessage();
   const orchestratorReady = isOrchestratorOriginConfigured();
-  const configBannerText = wrongRpcUrl || (!orchestratorReady ? missingViteApiBaseUrlMessage() : "");
+  const configBannerText =
+    wrongRpcUrl || frontendUrlAsOrchestratorApiMessage() || (!orchestratorReady ? missingViteApiBaseUrlMessage() : "");
 
   useOrchestratorDealsWs(qc, orchestratorReady);
   const agentWs = useAgentChannelWs(orchestratorReady);

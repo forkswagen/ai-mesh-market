@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
-import { getBackendOrigin } from "@/lib/api/backendOrigin";
+import { apiBase } from "@/lib/api/env";
 import { createPlatformTask, listPlatformTasks, patchPlatformTaskStatus, type PlatformTaskDto } from "@/lib/api/tasks";
 import { TASK_CATEGORY_LABELS } from "@/lib/tasks/categories";
 import { toast } from "sonner";
@@ -49,10 +49,10 @@ export default function TasksPage() {
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
   const { connected, address, connect } = useSolanaWallet();
-  const apiBase = getBackendOrigin();
+  const apiBaseStr = apiBase();
 
   const tasksQuery = useQuery({
-    queryKey: ["platform-tasks", apiBase],
+    queryKey: ["platform-tasks", apiBaseStr],
     queryFn: () => listPlatformTasks(200),
     staleTime: 15_000,
   });
@@ -86,7 +86,7 @@ export default function TasksPage() {
       setTitle("");
       setDescription("");
       setCreateOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] });
+      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
@@ -97,7 +97,7 @@ export default function TasksPage() {
   async function setTaskStatus(id: string, status: "open" | "in_progress" | "done") {
     try {
       await patchPlatformTaskStatus(id, status);
-      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] });
+      await queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] });
       toast.success("Статус обновлён");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Ошибка");
@@ -122,7 +122,7 @@ export default function TasksPage() {
             size="sm"
             className="text-xs"
             disabled={tasksQuery.isFetching}
-            onClick={() => void queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBase] })}
+            onClick={() => void queryClient.invalidateQueries({ queryKey: ["platform-tasks", apiBaseStr] })}
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${tasksQuery.isFetching ? "animate-spin" : ""}`} />
             Обновить
@@ -140,7 +140,7 @@ export default function TasksPage() {
       <Alert>
         <AlertTitle className="text-sm">Оркестратор</AlertTitle>
         <AlertDescription>
-          <span className="font-mono text-xs break-all">{apiBase}</span>
+          <span className="font-mono text-xs break-all">{apiBaseStr}</span>
           <p className="text-xs text-muted-foreground mt-2">
             Миграция таблицы: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. В dev из корня:{" "}
             <code className="text-[10px]">npm run dev</code> (Vite + API на 8787) или только{" "}

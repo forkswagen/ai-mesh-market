@@ -32,7 +32,12 @@ import { postAgentInfer } from "@/lib/api/agentInfer";
 import { fetchAgentsRegistry, postAgentsChallenge, postAgentsRegister } from "@/lib/api/agentRegistry";
 import { fetchApiHealth } from "@/lib/api/health";
 import { fetchApiMeta } from "@/lib/api/meta";
-import { missingViteApiBaseUrlMessage, orchestratorConnectionHint } from "@/lib/api/connectionHints";
+import {
+  frontendUrlAsOrchestratorApiMessage,
+  missingViteApiBaseUrlMessage,
+  orchestratorConnectionHint,
+} from "@/lib/api/connectionHints";
+import { wrongOrchestratorUrlMessage } from "@/lib/api/backendOrigin";
 import { SolTolokaPanel } from "@/components/agents/SolTolokaPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
@@ -54,6 +59,10 @@ export default function AgentsPage() {
 
   const api = apiBase();
   const orchestratorReady = Boolean(api);
+  const escoraConfigBanner =
+    wrongOrchestratorUrlMessage() ||
+    frontendUrlAsOrchestratorApiMessage() ||
+    (!orchestratorReady ? missingViteApiBaseUrlMessage() : "");
   const wallet = useSolanaWallet();
   const [regLogicalId, setRegLogicalId] = useState("");
   const [regDisplayName, setRegDisplayName] = useState("");
@@ -169,15 +178,16 @@ export default function AgentsPage() {
         </p>
       </div>
 
-      {!orchestratorReady && (
+      {escoraConfigBanner && (
         <div className="surface p-4 border border-amber-500/35 bg-amber-500/5 text-sm space-y-2">
           <p className="font-heading font-semibold text-foreground flex items-center gap-2">
             <Activity className="h-4 w-4 text-amber-600" />
-            Оркестратор Escora не настроен в этой сборке
+            Оркестратор Escora (отдельный backend)
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{missingViteApiBaseUrlMessage()}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{escoraConfigBanner}</p>
           <p className="text-xs text-muted-foreground">
-            Вкладка <strong className="text-foreground/90">SolToloka · GPU</strong> ниже — отдельный API и может работать через прокси без этого переменного.
+            Вкладка <strong className="text-foreground/90">SolToloka · GPU</strong> — другой API (может работать через прокси без{" "}
+            <code className="bg-muted px-0.5 rounded">VITE_API_BASE_URL</code>).
           </p>
         </div>
       )}

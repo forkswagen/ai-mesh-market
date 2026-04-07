@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { orchestratorWsUrl } from "@/lib/ws/orchestratorWs";
+import { orchestratorWsConfigured } from "@/lib/api/backendOrigin";
 
 function invalidateDeals(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["orchestrator", "deals"] });
@@ -14,7 +15,7 @@ export function useOrchestratorDealsWs(queryClient: QueryClient, enabled = true)
   qcRef.current = queryClient;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !orchestratorWsConfigured()) return;
 
     let ws: WebSocket | null = null;
     let disposed = false;
@@ -38,8 +39,10 @@ export function useOrchestratorDealsWs(queryClient: QueryClient, enabled = true)
     const connect = () => {
       if (disposed) return;
       clearReconnect();
+      const url = orchestratorWsUrl();
+      if (!url) return;
       try {
-        ws = new WebSocket(orchestratorWsUrl());
+        ws = new WebSocket(url);
       } catch {
         scheduleReconnect();
         return;

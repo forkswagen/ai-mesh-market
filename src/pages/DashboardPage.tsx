@@ -16,7 +16,12 @@ import {
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
+import {
+  frontendUrlAsOrchestratorApiMessage,
+  missingViteApiBaseUrlMessage,
+  orchestratorConnectionHint,
+} from "@/lib/api/connectionHints";
+import { isOrchestratorOriginConfigured, wrongOrchestratorUrlMessage } from "@/lib/api/backendOrigin";
 import { fetchApiHealth } from "@/lib/api/health";
 import { fetchOracleWorkersStats } from "@/lib/api/oracleWorkers";
 import { DATA_ARBITER_PROGRAM_ID } from "@/lib/solana/escrow";
@@ -56,16 +61,22 @@ const activity = [
 ];
 
 export default function DashboardPage() {
+  const wrongRpcUrl = wrongOrchestratorUrlMessage();
+  const orchestratorReady = isOrchestratorOriginConfigured();
+  const configBannerText =
+    wrongRpcUrl || frontendUrlAsOrchestratorApiMessage() || (!orchestratorReady ? missingViteApiBaseUrlMessage() : "");
+
   const healthQ = useQuery({
     queryKey: ["api", "health"],
     queryFn: fetchApiHealth,
+    enabled: orchestratorReady,
     retry: 1,
     staleTime: 30_000,
   });
   const oracleHostsQ = useQuery({
     queryKey: ["orchestrator", "oracle-workers"],
     queryFn: fetchOracleWorkersStats,
-    enabled: healthQ.isSuccess,
+    enabled: orchestratorReady && healthQ.isSuccess,
     refetchInterval: 8_000,
     staleTime: 4_000,
     retry: 1,
@@ -73,9 +84,22 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {configBannerText && (
+        <div className="surface p-4 border border-amber-500/35 bg-amber-500/5 flex gap-3 text-sm">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{configBannerText}</p>
+        </div>
+      )}
+
       <div
         className={`surface p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border ${
-          healthQ.isError ? "border-destructive/40 bg-destructive/5" : healthQ.isSuccess ? "border-green-500/25 bg-green-500/5" : "border-border"
+          !orchestratorReady
+            ? "border-border bg-muted/20"
+            : healthQ.isError
+              ? "border-destructive/40 bg-destructive/5"
+              : healthQ.isSuccess
+                ? "border-green-500/25 bg-green-500/5"
+                : "border-border"
         }`}
       >
         <div className="flex items-start gap-3 min-w-0">
@@ -95,21 +119,30 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 text-sm">
-          {healthQ.isLoading && (
+          {!orchestratorReady && (
+            <>
+              <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground text-xs max-w-[min(100%,320px)] leading-snug">
+                <code className="bg-muted px-1 rounded">/health</code> не запрашивается — см. жёлтый блок выше.
+              </span>
+            </>
+          )}
+          {orchestratorReady && healthQ.isLoading && (
             <>
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               <span className="text-muted-foreground">Проверка…</span>
             </>
           )}
-          {healthQ.isError && (
+          {orchestratorReady && healthQ.isError && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-              <span className="text-destructive text-xs max-w-[min(100%,320px)] leading-snug">
-                Нет связи с оркестратором. {orchestratorConnectionHint()}
+              <span className="text-destructive text-xs max-w-[min(100%,420px)] leading-snug">
+                Нет связи с оркестратором. {(healthQ.error as Error)?.message}{" "}
+                {!(healthQ.error as Error)?.message?.includes("VITE_API_BASE_URL") && orchestratorConnectionHint()}
               </span>
             </>
           )}
-          {healthQ.isSuccess && healthQ.data && (
+          {orchestratorReady && healthQ.isSuccess && healthQ.data && (
             <>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span className="text-foreground/90 text-xs">

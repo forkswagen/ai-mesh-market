@@ -1,16 +1,10 @@
-# Fallback, если Railpack не подходит: в Railway выбери builder DOCKERFILE или удали railway.toml.
-FROM node:20-bookworm-slim
-
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
-
+# Один контейнер = Node-оркестратор (папка server/). Railway / Render / Fly: корень контекста = server/
+FROM node:20-alpine
 WORKDIR /app
-
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-
 COPY . .
-
 ENV NODE_ENV=production
-
+ENV PORT=8787
 EXPOSE 8787
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

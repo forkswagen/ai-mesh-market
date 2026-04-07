@@ -3,8 +3,10 @@
  *
  * - `vite` dev: без `VITE_API_BASE_URL` → `http://127.0.0.1:8787`.
  * - `vite build` + открытие с localhost / 127.0.0.1 (в т.ч. preview): тот же localhost-оркестратор.
- * - Продакшен-деплой (Vercel и т.д.) без переменной: **пустая строка** — нельзя молча слать браузер на loopback.
- *   Задайте `VITE_API_BASE_URL` на публичный URL `server/` и пересоберите фронт.
+ * - Прод на **том же Vercel-проекте**, что и `api/escora` (rewrites `/health`, `/api/*` → `createApp`):
+ *   без `VITE_API_BASE_URL` REST идёт на тот же `window.location.origin`.
+ * - Либо явно: `VITE_API_BASE_URL` на отдельный публичный URL `server/` (Railway и т.д.) и пересборка.
+ * - Опционально устаревший вариант: внешний оркестратор + `ORCHESTRATOR_UPSTREAM_URL` и `/api/orchestrator-proxy`.
  */
 
 const LOCAL_NODE_ORCHESTRATOR = "http://127.0.0.1:8787";
@@ -67,7 +69,16 @@ export function getBackendOrigin(): string {
     }
     return "";
   }
-  if (explicit) return explicit;
+  if (explicit) {
+    if (typeof window !== "undefined") {
+      try {
+        if (new URL(explicit).origin === window.location.origin) return "";
+      } catch {
+        /* noop */
+      }
+    }
+    return explicit;
+  }
 
   if (import.meta.env.DEV) {
     return LOCAL_NODE_ORCHESTRATOR;
@@ -83,8 +94,55 @@ export function getBackendOrigin(): string {
   return "";
 }
 
-/** false на прод-версии сайта без VITE_API_BASE_URL — нужен Redeploy с env. */
+/**
+ * Прод-сборка на публичном хосте: оркестратор на том же origin (Vercel `api/escora` + rewrites),
+ * без отдельного `VITE_API_BASE_URL`.
+ */
+export function orchestratorEmbeddedSameOrigin(): boolean {
+  if (import.meta.env.DEV) return false;
+  if (import.meta.env.VITE_ORCHESTRATOR_VIA_PROXY === "1") return false;
+  if (String(import.meta.env.VITE_API_BASE_URL || "").trim()) return false;
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  if (h === "localhost" || h === "127.0.0.1") return false;
+  return true;
+}
+
+/**
+ * Устаревший режим: только REST через `/api/orchestrator-proxy` + `ORCHESTRATOR_UPSTREAM_URL` (внешний server/).
+ * Включите `VITE_ORCHESTRATOR_VIA_PROXY=1` в сборке фронта.
+ */
+export function orchestratorHttpViaProxy(): boolean {
+  if (import.meta.env.DEV) return false;
+  if (import.meta.env.VITE_ORCHESTRATOR_VIA_PROXY !== "1") return false;
+  if (String(import.meta.env.VITE_API_BASE_URL || "").trim()) return false;
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  if (h === "localhost" || h === "127.0.0.1") return false;
+  return true;
+}
+
+/** База для HTTP к оркестратору: явный URL, same-origin `api/escora`, или legacy-прокси. */
+export function getOrchestratorHttpBase(): string {
+  const direct = getBackendOrigin();
+  if (direct) return direct;
+  if (orchestratorHttpViaProxy() && typeof window !== "undefined") {
+    return `${window.location.origin}/api/orchestrator-proxy`;
+  }
+  if (orchestratorEmbeddedSameOrigin() && typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return "";
+}
+
+/** Есть ли настроенный путь к оркестратору по HTTP. */
 export function isOrchestratorOriginConfigured(): boolean {
-  return Boolean(getBackendOrigin());
+  return Boolean(getOrchestratorHttpBase());
+}
+
+/** Доступен ли заявленный путь для WebSocket (попытка same-origin `/ws` на Vercel может не сработать на Serverless). */
+export function orchestratorWsConfigured(): boolean {
+  if (import.meta.env.VITE_ORCHESTRATOR_WS_URL?.trim()) return true;
+  return Boolean(getOrchestratorHttpBase()) || import.meta.env.DEV;
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { orchestratorAgentWsUrl } from "@/lib/ws/orchestratorWs";
+import { orchestratorWsConfigured } from "@/lib/api/backendOrigin";
 
 export type LmModelRow = { id: string };
 
@@ -32,7 +33,7 @@ export function useAgentChannelWs(enabled = true) {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !orchestratorWsConfigured()) return;
 
     let disposed = false;
     let reconnect: ReturnType<typeof setTimeout> | null = null;
@@ -46,9 +47,11 @@ export function useAgentChannelWs(enabled = true) {
     const connect = () => {
       if (disposed) return;
       clearReconnect();
+      const url = orchestratorAgentWsUrl();
+      if (!url) return;
       let ws: WebSocket;
       try {
-        ws = new WebSocket(orchestratorAgentWsUrl());
+        ws = new WebSocket(url);
       } catch {
         reconnect = setTimeout(connect, 3000);
         return;

@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => ({
     },
     // Если кто-то дергает относительные /api с dev-сервера — прокси на локальный оркестратор.
     proxy: {
+      "/api/orchestrator-proxy": {
+        target: process.env.ORCHESTRATOR_UPSTREAM_URL || "http://127.0.0.1:8787",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/orchestrator-proxy/, "") || "/",
+      },
       "/api/soltoloka-proxy": {
         target: process.env.SOLTOLOKA_UPSTREAM_URL || "https://soltoloka-backend.vercel.app",
         changeOrigin: true,
