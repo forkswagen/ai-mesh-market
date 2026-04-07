@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). REST, **`/health`**, escrow и задачи идут на **Node-оркестратор** (`server/`) — по умолчанию **`http://127.0.0.1:8787`** при `npm run server:dev` ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)). Прокси Vite в [`vite.config.ts`](vite.config.ts) тоже смотрит на этот порт. Страница **SolToloka** по желанию ходит в отдельный FastAPI (`VITE_SOLToloka_API_URL` или публичный демо-URL в коде).
+В dev открой [http://127.0.0.1:5173](http://127.0.0.1:5173). Команда **`npm run dev` в корне** поднимает сразу Vite и **Node-оркестратор** (`server/` на **8787**); только фронт без API — `npm run dev:web`. REST, **`/health`**, escrow и задачи идут на оркестратор ([`src/lib/api/backendOrigin.ts`](src/lib/api/backendOrigin.ts)). Прокси Vite в [`vite.config.ts`](vite.config.ts) смотрит на :8787. Страница **SolToloka** по желанию ходит в отдельный FastAPI (`VITE_SOLToloka_API_URL` или публичный демо-URL в коде).
 
 ### SolToloka: связка фронт · бэк · агент
 
@@ -37,12 +37,7 @@ npm run dev
 
 ## Опционально: оркестратор escrow · `server/` (Node)
 
-Локальный сервис: Postgres/SQLite + цикл `initialize_escrow` → … → `ai_judge` (см. [docs/API_CONTRACT.md](docs/API_CONTRACT.md)).
-
-```bash
-cd server && npm install && npm run dev
-npm run dev   # из корня, параллельно
-```
+Локальный сервис: Postgres/SQLite + цикл `initialize_escrow` → … → `ai_judge` (см. [docs/API_CONTRACT.md](docs/API_CONTRACT.md)). Первый раз: `cd server && npm install`. Дальше из **корня** достаточно `npm run dev` (Vite + оркестратор); только API — `npm run server:dev`.
 
 **WebSocket / LM Studio / oracle-worker:** реализованы в `server/` (`/ws`, `/ws/agent`, `/ws/oracle-worker`).
 
@@ -57,10 +52,10 @@ npm run dev   # из корня, параллельно
 3. **Запуск одной командой** из корня репозитория:
 
    ```bash
-   npm run dev:demo
+   npm run dev
    ```
 
-   Поднимается Vite (**5173**) и оркестратор (**8787**). Альтернатива — два терминала: `npm run server:dev` и `npm run dev`.
+   Поднимается Vite (**5173**) и оркестратор (**8787**). Алиас прежней связки: `npm run dev:demo`. Только фронт: `npm run dev:web`; только API: `npm run server:dev`.
 4. **В браузере:** открой [http://127.0.0.1:5173/escrow](http://127.0.0.1:5173/escrow). Должен быть зелёный статус оркестратора; нажми **«Запустить seeded demo»**.
 5. **Ожидание:** в списке сделок появилась запись со статусом `settled` и ссылкой на транзакцию `ai_judge` (Solscan devnet).
 

@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, Database, Shield, Bot, Settings, Wallet, Cable, Loader2 } from "lucide-react";
+import { LayoutDashboard, ListTodo, Database, Shield, Bot, Settings, Wallet, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,8 @@ const mainNav = [
   { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
-  { title: "AI Агенты", url: "/agents", icon: Bot },
+  { title: "Агенты", url: "/agents", icon: Bot },
   { title: "AI Escrow", url: "/escrow", icon: Shield },
-  { title: "SolToloka", url: "/soltoloka", icon: Cable },
 ];
 
 export function AppSidebar() {

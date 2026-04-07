@@ -269,7 +269,7 @@ export default function EscrowPage() {
           <p className="text-xs text-muted-foreground mt-1">
             Нужны <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> и ключи в{" "}
             <code className="bg-muted px-1 rounded">server/.env</code>. Запуск из корня:{" "}
-            <code className="bg-muted px-1 rounded">npm run dev:demo</code> (Vite + оркестратор).
+            <code className="bg-muted px-1 rounded">npm run dev</code> (Vite + оркестратор).
           </p>
         </div>
         <Button

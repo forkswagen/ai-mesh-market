@@ -150,7 +150,7 @@ export default function DashboardPage() {
           <p className="text-sm font-semibold text-foreground">Главное демо: AI Escrow</p>
           <p className="text-xs text-muted-foreground mt-1">
             Нужны <code className="bg-muted px-1 rounded">server/.env</code> с ключами и SOL на devnet. Запуск из корня:{" "}
-            <code className="bg-muted px-1 rounded">npm run dev:demo</code>.
+            <code className="bg-muted px-1 rounded">npm run dev</code>.
           </p>
         </div>
         <Button asChild className="shrink-0 gap-2">

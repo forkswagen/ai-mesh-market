@@ -16,12 +16,24 @@ type ComputeNode = {
 };
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const r = await fetch(soltolokaApiUrl(path));
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const url = soltolokaApiUrl(path);
+  let r: Response;
+  try {
+    r = await fetch(url);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `${msg} · запрос: ${url}\n\n` +
+        "Публичный soltoloka-backend.vercel.app может быть недоступен или не отдавать CORS. " +
+        "Задеплойте свой FastAPI (forkswagen/soltoloka-backend) и задайте VITE_SOLToloka_API_URL, либо используйте прокси /api/soltoloka-proxy (без VITE_SOLToloka_API_URL).",
+    );
+  }
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${url}`);
   return r.json();
 }
 
-export default function SolTolokaPage() {
+/** Ноды SolToloka (отдельный FastAPI) — тот же раздел «агенты», другой бэкенд. */
+export function SolTolokaPanel() {
   const rootQ = useQuery({
     queryKey: ["soltoloka", "root"],
     queryFn: () => fetchJson<SoltolokaRoot>("/"),
@@ -37,23 +49,14 @@ export default function SolTolokaPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
-          <Cable className="h-7 w-7 text-primary" />
-          SolToloka
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ноды и статус SolToloka с публичного API. Документация:{" "}
-          <a className="text-primary hover:underline" href={soltolokaDocsUrl()} target="_blank" rel="noreferrer">
-            OpenAPI (Swagger)
-          </a>
-          . Текущая база:{" "}
-          <code className="bg-muted px-1 rounded text-xs break-all">{soltolokaOrigin()}</code>
-          {" — при необходимости переопредели через "}
-          <code className="bg-muted px-1 rounded text-xs">VITE_SOLToloka_API_URL</code>.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Вычислительные ноды и WebSocket-агенты SolToloka. Документация:{" "}
+        <a className="text-primary hover:underline" href={soltolokaDocsUrl()} target="_blank" rel="noreferrer">
+          OpenAPI
+        </a>
+        . API: <code className="bg-muted px-1 rounded text-xs break-all">{soltolokaOrigin()}</code>
+      </p>
 
       <div
         className={`surface p-4 border text-sm ${
@@ -63,7 +66,7 @@ export default function SolTolokaPage() {
         {rootQ.isLoading && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Проверка API…
+            Проверка SolToloka API…
           </div>
         )}
         {rootQ.isError && (
@@ -71,7 +74,7 @@ export default function SolTolokaPage() {
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">SolToloka backend недоступен</p>
-              <p className="text-xs mt-1 opacity-90">{(rootQ.error as Error).message}</p>
+              <p className="text-xs mt-1 opacity-90 whitespace-pre-wrap">{(rootQ.error as Error).message}</p>
               <p className="text-xs mt-2 text-muted-foreground">{soltolokaConnectionHint()}</p>
             </div>
           </div>
@@ -80,7 +83,7 @@ export default function SolTolokaPage() {
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-foreground font-medium">API отвечает</p>
+              <p className="text-foreground font-medium">SolToloka API отвечает</p>
               <p className="text-muted-foreground text-xs mt-1">{rootQ.data.message}</p>
             </div>
           </div>
@@ -88,18 +91,21 @@ export default function SolTolokaPage() {
       </div>
 
       <div className="surface p-4 border border-border">
-        <h2 className="font-heading font-semibold text-sm mb-3">Ноды (из БД + WebSocket)</h2>
+        <h2 className="font-heading font-semibold text-sm mb-3 flex items-center gap-2">
+          <Cable className="h-4 w-4 text-primary" />
+          Ноды (БД + WebSocket)
+        </h2>
         {nodesQ.isLoading && (
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             Загрузка…
           </p>
         )}
-        {nodesQ.isError && <p className="text-sm text-destructive">{(nodesQ.error as Error).message}</p>}
+        {nodesQ.isError && <p className="text-sm text-destructive whitespace-pre-wrap">{(nodesQ.error as Error).message}</p>}
         {nodesQ.isSuccess && nodesQ.data.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            Нод пока нет. Зарегистрируй ноду через API (владелец) и подними{" "}
-            <code className="bg-muted px-1 rounded text-xs">soltoloka-agent</code> с LM Studio :1234.
+            Нод нет. Регистрация: POST <code className="bg-muted px-1 rounded text-xs">{soltolokaApiUrl("/api/v1/compute/register")}</code> и агент{" "}
+            <code className="bg-muted px-1 rounded text-xs">soltoloka-agent</code> + LM Studio.
           </p>
         )}
         {nodesQ.isSuccess && nodesQ.data.length > 0 && (
@@ -118,28 +124,13 @@ export default function SolTolokaPage() {
 
       <div className="text-xs text-muted-foreground space-y-1">
         <p>
-          Репозитории:{" "}
-          <a
-            href="https://github.com/forkswagen/soltoloka-backend"
-            className="text-primary inline-flex items-center gap-1 hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href="https://github.com/forkswagen/soltoloka-backend" className="text-primary inline-flex items-center gap-1 hover:underline" target="_blank" rel="noreferrer">
             soltoloka-backend <ExternalLink className="h-3 w-3" />
           </a>
           ,{" "}
-          <a
-            href="https://github.com/forkswagen/soltoloka-agent"
-            className="text-primary inline-flex items-center gap-1 hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href="https://github.com/forkswagen/soltoloka-agent" className="text-primary inline-flex items-center gap-1 hover:underline" target="_blank" rel="noreferrer">
             soltoloka-agent <ExternalLink className="h-3 w-3" />
           </a>
-        </p>
-        <p>
-          Свой хост бэка — переменная <code className="bg-muted px-1 rounded text-xs">VITE_SOLToloka_API_URL</code> и
-          Redeploy; иначе используется публичный деплой по умолчанию.
         </p>
       </div>
     </div>

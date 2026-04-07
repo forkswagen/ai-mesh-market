@@ -1,4 +1,5 @@
-import { apiUrl } from "@/lib/api/env";
+import { formatOrchestratorHttpError } from "@/lib/api/orchestratorErrors";
+import { orchestratorFetch } from "@/lib/api/orchestratorFetch";
 
 export type LiveAgentRow = {
   logicalId: string;
@@ -17,10 +18,14 @@ export type OracleWorkersStats = {
 };
 
 export async function fetchOracleWorkersStats(): Promise<OracleWorkersStats> {
-  const r = await fetch(apiUrl("/api/agent/oracle-workers"));
+  const r = await orchestratorFetch("/api/agent/oracle-workers");
+  const t = await r.text();
   if (!r.ok) {
-    const t = await r.text();
-    throw new Error(t || r.statusText);
+    throw new Error(formatOrchestratorHttpError("/api/agent/oracle-workers", r.status, t));
   }
-  return r.json() as Promise<OracleWorkersStats>;
+  try {
+    return JSON.parse(t) as OracleWorkersStats;
+  } catch {
+    throw new Error(formatOrchestratorHttpError("/api/agent/oracle-workers", r.status, t));
+  }
 }

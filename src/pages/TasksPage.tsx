@@ -142,8 +142,9 @@ export default function TasksPage() {
         <AlertDescription>
           <span className="font-mono text-xs break-all">{apiBase}</span>
           <p className="text-xs text-muted-foreground mt-2">
-            Миграция таблицы: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. В dev:{" "}
-            <code className="text-[10px]">npm run server:dev</code> на порту 8787.
+            Миграция таблицы: <code className="text-[10px]">server/migrations/002_platform_tasks.sql</code>. В dev из корня:{" "}
+            <code className="text-[10px]">npm run dev</code> (Vite + API на 8787) или только{" "}
+            <code className="text-[10px]">npm run server:dev</code>.
           </p>
         </AlertDescription>
       </Alert>

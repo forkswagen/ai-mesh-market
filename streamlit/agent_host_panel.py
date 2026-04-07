@@ -219,7 +219,7 @@ col_c.metric("LM Studio /v1/models", "OK" if lm_ok else "Нет", delta=None if 
 
 if not healthy_orch:
     st.error(
-        f"Оркестратор недоступен по `{base}`. Поднимите `npm run server:dev` из корня репозитория "
+        f"Оркестратор недоступен по `{base}`. Поднимите `npm run dev` из корня репозитория "
         f"или укажите URL деплоя. Ответ: {body_orch!r}"
     )
 

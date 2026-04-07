@@ -75,4 +75,4 @@ VITE_DEV_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
 
 writeFileSync(envPath, env, { mode: 0o600 });
 console.log(`\n✓ Записан ${envPath}`);
-console.log("Перезапусти оркестратор: npm run server:dev (или npm run dev:demo из корня)");
+console.log("Перезапусти стек: npm run dev из корня (или только API: npm run server:dev)");

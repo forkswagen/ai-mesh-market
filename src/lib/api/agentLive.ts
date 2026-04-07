@@ -1,12 +1,17 @@
-import { apiUrl } from "@/lib/api/env";
 import type { LiveAgentRow } from "@/lib/api/oracleWorkers";
+import { formatOrchestratorHttpError } from "@/lib/api/orchestratorErrors";
+import { orchestratorFetch } from "@/lib/api/orchestratorFetch";
 
 export async function fetchLiveAgents(): Promise<LiveAgentRow[]> {
-  const r = await fetch(apiUrl("/api/agent/live"));
+  const r = await orchestratorFetch("/api/agent/live");
+  const t = await r.text();
   if (!r.ok) {
-    const t = await r.text();
-    throw new Error(t || r.statusText);
+    throw new Error(formatOrchestratorHttpError("/api/agent/live", r.status, t));
   }
-  const data = (await r.json()) as { ok?: boolean; agents?: LiveAgentRow[] };
-  return data.agents ?? [];
+  try {
+    const data = JSON.parse(t) as { ok?: boolean; agents?: LiveAgentRow[] };
+    return data.agents ?? [];
+  } catch {
+    throw new Error(formatOrchestratorHttpError("/api/agent/live", r.status, t));
+  }
 }

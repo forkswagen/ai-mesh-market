@@ -12,7 +12,6 @@ import AgentsPage from "./pages/AgentsPage";
 import EscrowPage from "./pages/EscrowPage";
 import SettingsPage from "./pages/SettingsPage";
 import LandingPage from "./pages/LandingPage";
-import SolTolokaPage from "./pages/SolTolokaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,10 +30,10 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/datasets" element={<DatasetsPage />} />
-              <Route path="/compute" element={<Navigate to="/soltoloka" replace />} />
+              <Route path="/compute" element={<Navigate to="/agents?tab=soltoloka" replace />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/escrow" element={<EscrowPage />} />
-              <Route path="/soltoloka" element={<SolTolokaPage />} />
+              <Route path="/soltoloka" element={<Navigate to="/agents?tab=soltoloka" replace />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Route>
