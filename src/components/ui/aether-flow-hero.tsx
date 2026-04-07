@@ -6,7 +6,10 @@ import { Link } from "react-router-dom";
 
 export interface AetherFlowHeroProps {
   badge: string;
+  /** Heading text; also used as the logo `alt` when `heroLogoSrc` is set. */
   title: string;
+  /** When set, the hero heading is this image instead of gradient title text. */
+  heroLogoSrc?: string;
   description: string;
   primaryCta: { to: string; label: string };
   secondaryCta?: { to: string; label: string };
@@ -16,6 +19,7 @@ export interface AetherFlowHeroProps {
 const AetherFlowHero = ({
   badge,
   title,
+  heroLogoSrc,
   description,
   primaryCta,
   secondaryCta,
@@ -226,9 +230,24 @@ const AetherFlowHero = ({
           variants={fadeUpVariants}
           initial="hidden"
           animate="visible"
-          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400"
+          className={
+            heroLogoSrc
+              ? "mb-6 flex justify-center px-1"
+              : "mb-6 bg-gradient-to-b from-white to-gray-400 bg-clip-text text-4xl font-bold tracking-tighter text-transparent sm:text-5xl md:text-7xl lg:text-8xl"
+          }
         >
-          {title}
+          {heroLogoSrc ? (
+            <img
+              src={heroLogoSrc}
+              alt={title}
+              width={747}
+              height={125}
+              decoding="async"
+              className="h-auto w-full max-w-[min(100%,15rem)] object-contain sm:max-w-sm md:max-w-xl lg:max-w-2xl"
+            />
+          ) : (
+            title
+          )}
         </motion.h1>
 
         <motion.p

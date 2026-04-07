@@ -39,14 +39,18 @@ export function AppSidebar() {
           title="Home (landing)"
           className="flex items-center gap-2 rounded-md outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent/80 focus-visible:ring-2 -m-1 p-1"
         >
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-heading font-bold text-sm">E</span>
-          </div>
+          <img
+            src="/escora-logo.svg"
+            alt="Escora"
+            className={`flex-shrink-0 object-left object-contain ${collapsed ? "h-8 w-8 object-cover" : "h-8 w-auto max-w-[120px]"}`}
+            width={747}
+            height={125}
+            decoding="async"
+          />
           {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="font-heading font-bold text-foreground text-lg leading-tight">Escora</span>
-              <span className="text-[10px] text-muted-foreground truncate">Agent Economy · AI Escrow (devnet)</span>
-            </div>
+            <span className="min-w-0 truncate text-[10px] text-muted-foreground">
+              Agent Economy · AI Escrow (devnet)
+            </span>
           )}
         </Link>
       </SidebarHeader>
