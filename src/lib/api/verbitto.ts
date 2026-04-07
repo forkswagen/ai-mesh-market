@@ -1,4 +1,4 @@
-import { apiUrl } from "@/lib/api/env";
+import { verbittoApiUrl } from "@/lib/api/backendOrigin";
 
 export type CreateVerbittoOffchainTaskBody = {
   creatorPublicKey: string;
@@ -22,7 +22,7 @@ export type VerbittoOffchainTaskDto = {
 export type CreateVerbittoOffchainTaskResponse = VerbittoOffchainTaskDto;
 
 export async function postVerbittoHash(text: string): Promise<{ descriptionHashHex: string }> {
-  const res = await fetch(apiUrl("/api/verbitto/hash"), {
+  const res = await fetch(verbittoApiUrl("/api/verbitto/hash"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -37,7 +37,7 @@ export async function postVerbittoHash(text: string): Promise<{ descriptionHashH
 export async function createVerbittoOffchainTask(
   body: CreateVerbittoOffchainTaskBody,
 ): Promise<CreateVerbittoOffchainTaskResponse> {
-  const res = await fetch(apiUrl("/api/verbitto/offchain-tasks"), {
+  const res = await fetch(verbittoApiUrl("/api/verbitto/offchain-tasks"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -51,7 +51,7 @@ export async function createVerbittoOffchainTask(
 
 export async function listVerbittoOffchainTasks(limit = 100): Promise<VerbittoOffchainTaskDto[]> {
   const params = new URLSearchParams({ limit: String(limit) });
-  const res = await fetch(`${apiUrl("/api/verbitto/offchain-tasks")}?${params}`);
+  const res = await fetch(`${verbittoApiUrl("/api/verbitto/offchain-tasks")}?${params}`);
   if (!res.ok) {
     const t = await res.text();
     throw new Error(t || res.statusText);
@@ -64,7 +64,7 @@ export async function patchVerbittoOffchainChainTask(
   offchainId: string,
   chainTaskPublicKey: string,
 ): Promise<{ ok: boolean; id: string; chain_task_pubkey: string }> {
-  const res = await fetch(apiUrl(`/api/verbitto/offchain-tasks/${encodeURIComponent(offchainId)}`), {
+  const res = await fetch(verbittoApiUrl(`/api/verbitto/offchain-tasks/${encodeURIComponent(offchainId)}`), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chainTaskPublicKey }),

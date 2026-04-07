@@ -135,7 +135,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="font-heading text-xl font-bold text-foreground">Обзор NexusAI</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tasks, DePIN/GPU, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
+            Tasks, SolToloka, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
           </p>
         </div>
       </div>

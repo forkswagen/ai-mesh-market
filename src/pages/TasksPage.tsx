@@ -26,7 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
+import { getVerbittoApiOrigin } from "@/lib/api/backendOrigin";
 import { createVerbittoOffchainTask, listVerbittoOffchainTasks, type VerbittoOffchainTaskDto } from "@/lib/api/verbitto";
 import { VERBITTO_TASK_CATEGORY_LABELS, getVerbittoProgramId } from "@/lib/verbitto/constants";
 import { verbittoPlatformPda } from "@/lib/verbitto/pda";
@@ -59,10 +61,12 @@ export default function TasksPage() {
   const { connected, address, connect } = useSolanaWallet();
   const verbittoProgram = getVerbittoProgramId();
   const platformPda = verbittoProgram ? verbittoPlatformPda(verbittoProgram)[0].toBase58() : null;
+  const verbittoApiBase = getVerbittoApiOrigin();
 
   const tasksQuery = useQuery({
-    queryKey: ["verbitto-offchain-tasks"],
+    queryKey: ["verbitto-offchain-tasks", verbittoApiBase],
     queryFn: () => listVerbittoOffchainTasks(200),
+    enabled: Boolean(verbittoApiBase),
     staleTime: 15_000,
   });
 
@@ -73,6 +77,12 @@ export default function TasksPage() {
       : rows.filter((t) => t.taskCategory === Number(categoryFilter));
 
   async function submitVerbittoOffchain() {
+    if (!verbittoApiBase) {
+      toast.error("Не задан VITE_VERBITTO_API_URL", {
+        description: "Укажи URL Node-оркестратора (server/) с DATABASE_URL.",
+      });
+      return;
+    }
     if (!connected || !address) {
       toast.error("Подключите кошелёк", { description: "Нужен creator для офчейн-записи." });
       void connect();
@@ -100,7 +110,7 @@ export default function TasksPage() {
       toast.success("Задача сохранена в БД", { description: `Используйте description_hash для create_task на чейне.` });
       setVbTitle("");
       setVbDescription("");
-      await queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks"] });
+      await queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks", verbittoApiBase] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
     } finally {
@@ -116,7 +126,7 @@ export default function TasksPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Каталог из PostgreSQL (
             <code className="text-[10px]">verbitto_offchain_tasks</code>
-            ). Создание записи — офчейн + хэш для инструкции{" "}
+            ) через Node <code className="text-[10px]">server/</code>, не FastAPI. Создание — офчейн + хэш для{" "}
             <code className="text-[10px]">create_task</code>.
           </p>
         </div>
@@ -126,8 +136,10 @@ export default function TasksPage() {
             variant="outline"
             size="sm"
             className="text-xs"
-            disabled={tasksQuery.isFetching}
-            onClick={() => void queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks"] })}
+            disabled={!verbittoApiBase || tasksQuery.isFetching}
+            onClick={() =>
+              void queryClient.invalidateQueries({ queryKey: ["verbitto-offchain-tasks", verbittoApiBase] })
+            }
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${tasksQuery.isFetching ? "animate-spin" : ""}`} />
             Обновить
@@ -135,12 +147,35 @@ export default function TasksPage() {
           <Button
             type="button"
             className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+            disabled={!verbittoApiBase}
             onClick={() => setVerbittoOpen(true)}
           >
             + Создать задачу
           </Button>
         </div>
       </div>
+
+      {!verbittoApiBase && (
+        <Alert variant="destructive">
+          <AlertTitle>Нужен URL оркестратора для Verbitto</AlertTitle>
+          <AlertDescription>
+            SolToloka backend не отдаёт <code className="text-xs">/api/verbitto/*</code>. В проде задай{" "}
+            <code className="text-xs">VITE_VERBITTO_API_URL</code> на деплой Node{" "}
+            <code className="text-xs">server/</code> с <code className="text-xs">DATABASE_URL</code> (Neon). Локально:
+            <code className="text-xs"> npm run server:dev</code> на <code className="text-xs">8787</code> — в dev
+            переменная не обязательна.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {verbittoApiBase && (
+        <Alert>
+          <AlertTitle className="text-sm">Эндпоинт Verbitto</AlertTitle>
+          <AlertDescription>
+            <span className="font-mono text-xs break-all">{verbittoApiBase}</span>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Dialog open={verbittoOpen} onOpenChange={setVerbittoOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -259,11 +294,11 @@ export default function TasksPage() {
           <span></span>
         </div>
 
-        {tasksQuery.isLoading && (
+        {verbittoApiBase && tasksQuery.isLoading && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">Загрузка…</div>
         )}
 
-        {!tasksQuery.isLoading && filtered.length === 0 && (
+        {verbittoApiBase && !tasksQuery.isLoading && filtered.length === 0 && (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Нет задач в базе. Создайте запись кнопкой выше (оркестратор с{" "}
             <code className="text-xs">DATABASE_URL</code> на Neon).

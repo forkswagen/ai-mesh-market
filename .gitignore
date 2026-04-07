@@ -42,6 +42,6 @@ server/.env
 # Локальные клоны своих репо (источник правды на GitHub); при необходимости клонируй рядом.
 soltoloka-backend/
 soltoloka-agent/
-
+.clone-soltoloka-agent/
+.clone-soltoloka-backend/
 .venv-streamlit/
-streamlit-agent/__pycache__/

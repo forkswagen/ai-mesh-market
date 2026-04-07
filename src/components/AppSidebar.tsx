@@ -1,4 +1,4 @@
-import { LayoutDashboard, ListTodo, Database, Shield, Cpu, Bot, Settings, Wallet, Cable, Loader2 } from "lucide-react";
+import { LayoutDashboard, ListTodo, Database, Shield, Bot, Settings, Wallet, Cable, Loader2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
@@ -21,7 +21,6 @@ const mainNav = [
   { title: "Обзор", url: "/dashboard", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: ListTodo },
   { title: "Датасеты", url: "/datasets", icon: Database },
-  { title: "DePIN", url: "/compute", icon: Cpu },
   { title: "AI Агенты", url: "/agents", icon: Bot },
   { title: "AI Escrow", url: "/escrow", icon: Shield },
   { title: "SolToloka", url: "/soltoloka", icon: Cable },

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Bot,
-  Cpu,
+  Cable,
   Database,
   ExternalLink,
   Github,
@@ -35,9 +35,9 @@ const features = [
     description: "Публикация и совместное использование датасетов как актива платформы.",
   },
   {
-    icon: Cpu,
-    title: "DePIN · GPU",
-    description: "Аренда вычислений для обучения и инференса в одной сети с платформой.",
+    icon: Cable,
+    title: "SolToloka · ноды",
+    description: "Реестр compute-нод и статус через бэкенд SolToloka; агент и LM Studio — отдельный репозиторий.",
   },
   {
     icon: Bot,

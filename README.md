@@ -27,7 +27,7 @@ npm run dev
 |-----------|----------------|
 | **Фронт** ([`/soltoloka`](http://127.0.0.1:5173/soltoloka)) | Уже дергает API по [`soltoloka.ts`](src/lib/api/soltoloka.ts). Для своего инстанса — `VITE_SOLToloka_API_URL` в Vercel / `.env.local`. |
 | **Бэк** ([`forkswagen/soltoloka-backend`](https://github.com/forkswagen/soltoloka-backend)) | Postgres, Redis, `.env`, `uvicorn`. Ноды: **POST `/api/v1/compute/register`** (JWT). WebSocket: **`/api/v1/ws/connect/{node_id}`** — при старте бэка путь пишется в лог. Для **агентов** надёжнее хост с нормальным **wss** (Railway/VM), не serverless. |
-| **Агент** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | Клон рядом с монорепо или отдельно. `.env` из **`.env.example`**: **`BACKEND_WS_URL`**, **`NODE_ID`**, **`LM_STUDIO_URL`**. Запуск: `python src/main.py`. README в репозитории агента. |
+| **Агент** ([`forkswagen/soltoloka-agent`](https://github.com/forkswagen/soltoloka-agent)) | Один репо: воркер **`python src/main.py`** и демо-настройка LM/backend — **`streamlit run streamlit_app/app.py`** (хост/порт LM Studio, WS бэка, `NODE_ID`, запись в `.env`). Запросы к локальным LLM пользователей идут **только** как фронт → бэк → WS → агент → LM Studio. |
 
 ## Бэкенд (прод): [forkswagen/soltoloka-backend](https://github.com/forkswagen/soltoloka-backend) · Vercel
 
@@ -80,8 +80,9 @@ npm run dev   # из корня, параллельно
 
 1. **Project → Settings → Environment Variables**
 2. Опционально **`VITE_API_BASE_URL`** / **`VITE_SOLToloka_API_URL`** — если инстанс бэкенда не `https://soltoloka-backend.vercel.app`.
-3. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** и др. — см. [.env.example](.env.example).
-4. **Redeploy** после смены `VITE_*` (вшиваются в **build**).
+3. Для страницы **Tasks (Verbitto)** — **`VITE_VERBITTO_API_URL`**: публичный URL Node-оркестратора (`server/` с `DATABASE_URL` и `/api/verbitto`). SolToloka FastAPI эти маршруты не содержит.
+4. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** и др. — см. [.env.example](.env.example).
+5. **Redeploy** после смены `VITE_*` (вшиваются в **build**).
 
 Сборка: [`vercel.json`](vercel.json) (`dist/`, SPA fallback).
 

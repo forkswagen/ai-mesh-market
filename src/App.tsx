@@ -8,7 +8,6 @@ import AppLayout from "@/components/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
 import TasksPage from "./pages/TasksPage";
 import DatasetsPage from "./pages/DatasetsPage";
-import ComputePage from "./pages/ComputePage";
 import AgentsPage from "./pages/AgentsPage";
 import EscrowPage from "./pages/EscrowPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -32,7 +31,6 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/datasets" element={<DatasetsPage />} />
-              <Route path="/compute" element={<ComputePage />} />
               <Route path="/agents" element={<AgentsPage />} />
               <Route path="/escrow" element={<EscrowPage />} />
               <Route path="/soltoloka" element={<SolTolokaPage />} />
