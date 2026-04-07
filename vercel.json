@@ -17,10 +17,13 @@
     { "source": "/health", "destination": "/api/escora" },
     { "source": "/ws", "destination": "/api/escora" },
     { "source": "/ws/(.*)", "destination": "/api/escora" },
-    {
-      "source": "^/api/(?!(?:escora|orchestrator-proxy|soltoloka-proxy)(?:/|$))(.*)$",
-      "destination": "/api/escora"
-    },
+    { "source": "/api/meta", "destination": "/api/escora" },
+    { "source": "/api/deals/:path*", "destination": "/api/escora" },
+    { "source": "/api/agent/:path*", "destination": "/api/escora" },
+    { "source": "/api/v1/:path*", "destination": "/api/escora" },
+    { "source": "/api/datasets/:path*", "destination": "/api/escora" },
+    { "source": "/api/demo/:path*", "destination": "/api/escora" },
+    { "source": "/api/tasks/:path*", "destination": "/api/escora" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
