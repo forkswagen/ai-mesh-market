@@ -34,27 +34,27 @@ export function getBackendOrigin(): string {
 const LOCAL_NODE_ORCHESTRATOR = "http://127.0.0.1:8787";
 
 /**
- * Verbitto офчейн-задачи (`/api/verbitto/*`, PostgreSQL) реализованы в **Node `server/`**, не в SolToloka FastAPI.
- * В проде задай `VITE_VERBITTO_API_URL` (деплой `server/` с `DATABASE_URL`).
- * В dev без переменной используется локальный оркестратор.
+ * Node `server/`: задачи (`/api/tasks`), escrow, LM и т.д. Не SolToloka FastAPI.
+ * Приоритет: `VITE_ORCHESTRATOR_URL` → устар. `VITE_VERBITTO_API_URL`. В dev без них — localhost:8787.
  */
-export function getVerbittoApiOrigin(): string | null {
-  const raw = import.meta.env.VITE_VERBITTO_API_URL;
-  if (raw != null && String(raw).trim()) {
+export function getOrchestratorApiOrigin(): string | null {
+  for (const key of ["VITE_ORCHESTRATOR_URL", "VITE_VERBITTO_API_URL"] as const) {
+    const raw = import.meta.env[key];
+    if (raw == null || !String(raw).trim()) continue;
     const n = normalizeOrigin(String(raw));
     if (n) return n;
-    console.warn("[Escora] VITE_VERBITTO_API_URL не похож на URL.");
+    console.warn(`[Escora] ${key} не похож на URL.`);
   }
   if (import.meta.env.DEV) return LOCAL_NODE_ORCHESTRATOR;
   return null;
 }
 
-/** Абсолютный URL к Node-оркестратору для Verbitto. */
-export function verbittoApiUrl(path: string): string {
-  const base = getVerbittoApiOrigin();
+/** Абсолютный URL к Node-оркестратору. */
+export function orchestratorApiUrl(path: string): string {
+  const base = getOrchestratorApiOrigin();
   if (!base) {
     throw new Error(
-      "Verbitto: задай VITE_VERBITTO_API_URL (Node server/ с DATABASE_URL и /api/verbitto). SolToloka FastAPI эти маршруты не отдаёт.",
+      "Задай VITE_ORCHESTRATOR_URL — URL Node server/ с DATABASE_URL (или в dev подними npm run server:dev на :8787).",
     );
   }
   const normalized = path.startsWith("/") ? path : `/${path}`;

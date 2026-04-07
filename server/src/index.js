@@ -9,7 +9,7 @@ import { runOracle } from "./oracle.mjs";
 import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
 import { PublicKey } from "@solana/web3.js";
-import { attachVerbittoRoutes } from "./verbitto.js";
+import { attachPlatformTaskRoutes } from "./platformTasks.js";
 import { fetchHuggingFaceDatasets, fetchKaggleDatasets } from "./datasetsHub.js";
 
 const app = express();
@@ -26,7 +26,7 @@ function corsOrigins() {
 app.use(cors({ origin: corsOrigins(), credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 
-attachVerbittoRoutes(app);
+attachPlatformTaskRoutes(app);
 
 /** Поиск датасетов в Hugging Face Hub (публичный API). */
 app.get("/api/datasets/hub/huggingface", async (req, res) => {

@@ -10,12 +10,12 @@ interface ImportMetaEnv {
   readonly VITE_SOLToloka_API_URL?: string;
   /** Solana RPC для баланса кошелька (по умолчанию devnet). */
   readonly VITE_SOLANA_RPC_URL?: string;
-  /** Program ID Verbitto (Anchor) — для PDA и будущих транзакций с кошелька. */
-  readonly VITE_VERBITTO_PROGRAM_ID?: string;
   /**
-   * Node-оркестратор с `/api/verbitto/*` и PostgreSQL (Neon). Не FastAPI soltoloka-backend.
-   * В dev при отсутствии переменной используется http://127.0.0.1:8787.
+   * Node-оркестратор (`server/`: `/api/tasks`, escrow, LM и др.). Не FastAPI soltoloka-backend.
+   * Устаревший алиас: `VITE_VERBITTO_API_URL`.
+   * В dev без переменной используется http://127.0.0.1:8787.
    */
+  readonly VITE_ORCHESTRATOR_URL?: string;
   readonly VITE_VERBITTO_API_URL?: string;
   /** Кошелёк для dev JWT (challenge/verify); должен совпадать с NEXUS_DEMO_BUYER в nexus_bridge. */
   readonly VITE_DEPAI_DEV_WALLET?: string;

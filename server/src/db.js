@@ -22,7 +22,8 @@ const DEAL_PATCH_COLS = new Set([
   "error",
   "created_at",
 ]);
-const VERBITTO_PATCH_COLS = new Set(["chain_task_pubkey"]);
+
+const PLATFORM_TASK_PATCH_COLS = new Set(["status"]);
 
 /** @type {pg.Pool | null} */
 let pool = null;
@@ -39,18 +40,17 @@ function initSqlite() {
   const db = new Database(dbPath);
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS verbitto_offchain_tasks (
+    CREATE TABLE IF NOT EXISTS platform_tasks (
       id TEXT PRIMARY KEY,
-      creator_pubkey TEXT NOT NULL,
-      title TEXT,
+      title TEXT NOT NULL,
       description TEXT NOT NULL,
-      description_hash_hex TEXT NOT NULL,
-      task_category INTEGER,
-      chain_task_pubkey TEXT,
+      category INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_by TEXT,
       created_at BIGINT NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_creator ON verbitto_offchain_tasks(creator_pubkey);
-    CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_created ON verbitto_offchain_tasks(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_platform_tasks_created ON platform_tasks(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_platform_tasks_category ON platform_tasks(category);
   `);
 
   db.exec(`
@@ -106,22 +106,21 @@ async function ensurePostgresSchema() {
       );
     `);
     await client.query(`
-      CREATE TABLE IF NOT EXISTS verbitto_offchain_tasks (
+      CREATE TABLE IF NOT EXISTS platform_tasks (
         id TEXT PRIMARY KEY,
-        creator_pubkey TEXT NOT NULL,
-        title TEXT,
+        title TEXT NOT NULL,
         description TEXT NOT NULL,
-        description_hash_hex TEXT NOT NULL,
-        task_category INTEGER,
-        chain_task_pubkey TEXT,
+        category INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_by TEXT,
         created_at BIGINT NOT NULL
       );
     `);
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_creator ON verbitto_offchain_tasks(creator_pubkey);`,
+      `CREATE INDEX IF NOT EXISTS idx_platform_tasks_created ON platform_tasks(created_at DESC);`,
     );
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_created ON verbitto_offchain_tasks(created_at DESC);`,
+      `CREATE INDEX IF NOT EXISTS idx_platform_tasks_category ON platform_tasks(category);`,
     );
   } finally {
     client.release();
@@ -146,14 +145,10 @@ const insertSqlite = sqlite
 `)
   : null;
 
-const insertVerbittoSqlite = sqlite
+const insertPlatformTaskSqlite = sqlite
   ? sqlite.prepare(`
-  INSERT INTO verbitto_offchain_tasks (
-    id, creator_pubkey, title, description, description_hash_hex, task_category, chain_task_pubkey, created_at
-  )
-  VALUES (
-    @id, @creator_pubkey, @title, @description, @description_hash_hex, @task_category, @chain_task_pubkey, @created_at
-  )
+  INSERT INTO platform_tasks (id, title, description, category, status, created_by, created_at)
+  VALUES (@id, @title, @description, @category, @status, @created_by, @created_at)
 `)
   : null;
 
@@ -208,58 +203,61 @@ export async function listDeals() {
   return sqlite.prepare("SELECT * FROM deals ORDER BY created_at DESC").all();
 }
 
-export async function createVerbittoOffchainTask(row) {
+export async function createPlatformTask(row) {
   if (pool) {
     await pgQ(
-      `INSERT INTO verbitto_offchain_tasks (
-        id, creator_pubkey, title, description, description_hash_hex, task_category, chain_task_pubkey, created_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      `INSERT INTO platform_tasks (id, title, description, category, status, created_by, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [
         row.id,
-        row.creator_pubkey,
-        row.title ?? null,
+        row.title,
         row.description,
-        row.description_hash_hex,
-        row.task_category ?? null,
-        row.chain_task_pubkey ?? null,
+        row.category,
+        row.status ?? "open",
+        row.created_by ?? null,
         row.created_at,
       ],
     );
     return;
   }
-  insertVerbittoSqlite.run(row);
+  insertPlatformTaskSqlite.run({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    status: row.status ?? "open",
+    created_by: row.created_by ?? null,
+    created_at: row.created_at,
+  });
 }
 
-export async function getVerbittoOffchainTask(id) {
+export async function getPlatformTask(id) {
   if (pool) {
-    const { rows } = await pgQ("SELECT * FROM verbitto_offchain_tasks WHERE id = $1", [id]);
+    const { rows } = await pgQ("SELECT * FROM platform_tasks WHERE id = $1", [id]);
     return rows[0] ?? null;
   }
-  return sqlite.prepare("SELECT * FROM verbitto_offchain_tasks WHERE id = ?").get(id);
+  return sqlite.prepare("SELECT * FROM platform_tasks WHERE id = ?").get(id);
 }
 
-export async function listVerbittoOffchainTasks({ limit = 50 } = {}) {
+export async function listPlatformTasks({ limit = 50 } = {}) {
   const n = Math.min(Math.max(Number(limit) || 50, 1), 200);
   if (pool) {
-    const { rows } = await pgQ(
-      "SELECT * FROM verbitto_offchain_tasks ORDER BY created_at DESC LIMIT $1",
-      [n],
-    );
+    const { rows } = await pgQ("SELECT * FROM platform_tasks ORDER BY created_at DESC LIMIT $1", [n]);
     return rows;
   }
-  return sqlite.prepare("SELECT * FROM verbitto_offchain_tasks ORDER BY created_at DESC LIMIT ?").all(n);
+  return sqlite.prepare("SELECT * FROM platform_tasks ORDER BY created_at DESC LIMIT ?").all(n);
 }
 
-export async function patchVerbittoOffchainTask(id, patch) {
-  const keys = Object.keys(patch).filter((k) => patch[k] !== undefined && VERBITTO_PATCH_COLS.has(k));
+export async function patchPlatformTask(id, patch) {
+  const keys = Object.keys(patch).filter((k) => patch[k] !== undefined && PLATFORM_TASK_PATCH_COLS.has(k));
   if (keys.length === 0) return;
   if (pool) {
     const vals = keys.map((k) => patch[k]);
     const set = keys.map((k, i) => `${k} = $${i + 1}`).join(", ");
-    await pgQ(`UPDATE verbitto_offchain_tasks SET ${set} WHERE id = $${keys.length + 1}`, [...vals, id]);
+    await pgQ(`UPDATE platform_tasks SET ${set} WHERE id = $${keys.length + 1}`, [...vals, id]);
     return;
   }
   const filtered = Object.fromEntries(keys.map((k) => [k, patch[k]]));
   const set = keys.map((k) => `${k} = @${k}`).join(", ");
-  sqlite.prepare(`UPDATE verbitto_offchain_tasks SET ${set} WHERE id = @id`).run({ id, ...filtered });
+  sqlite.prepare(`UPDATE platform_tasks SET ${set} WHERE id = @id`).run({ id, ...filtered });
 }
