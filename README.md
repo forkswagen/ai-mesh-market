@@ -80,7 +80,7 @@ npm run dev   # из корня, параллельно
 
 1. **Project → Settings → Environment Variables**
 2. Опционально **`VITE_API_BASE_URL`** / **`VITE_SOLToloka_API_URL`** — если инстанс бэкенда не `https://soltoloka-backend.vercel.app`.
-3. Для страницы **Tasks** — **`VITE_ORCHESTRATOR_URL`**: публичный URL Node-оркестратора (`server/` с `DATABASE_URL` и `GET/POST /api/tasks`). SolToloka FastAPI эти маршруты не содержит. Устаревший алиас: `VITE_VERBITTO_API_URL`.
+3. Страница **Tasks (Verbitto)** ходит в **SolToloka FastAPI**: `GET/POST /api/v1/verbitto/offchain-tasks`, WebSocket `.../api/v1/ws/verbitto-tasks`. Нужна таблица `verbitto_offchain_tasks` в БД бэкенда (см. `soltoloka-backend/migrations/verbitto_offchain_tasks.sql` или `DEBUG=true` + create_all). Опционально **`VITE_VERBITTO_PROGRAM_ID`** для PDA в UI.
 4. Опционально **`VITE_DEPAI_DEV_WALLET`**, **`VITE_SOLANA_RPC_URL`** и др. — см. [.env.example](.env.example).
 5. **Redeploy** после смены `VITE_*` (вшиваются в **build**).
 

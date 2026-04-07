@@ -60,3 +60,11 @@ export function orchestratorApiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return new URL(normalized, `${base.replace(/\/$/, "")}/`).href;
 }
+
+/** WebSocket base (wss/https, ws/http) для того же хоста, что SolToloka FastAPI. */
+export function getBackendWsBaseUrl(): string {
+  const base = getBackendOrigin();
+  if (base.startsWith("https://")) return `wss://${base.slice("https://".length)}`;
+  if (base.startsWith("http://")) return `ws://${base.slice("http://".length)}`;
+  return base;
+}

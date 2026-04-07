@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_SOLToloka_API_URL?: string;
   /** Solana RPC для баланса кошелька (по умолчанию devnet). */
   readonly VITE_SOLANA_RPC_URL?: string;
+  /** Program ID Verbitto (Anchor) — PDA в UI на странице Tasks. */
+  readonly VITE_VERBITTO_PROGRAM_ID?: string;
   /**
    * Node-оркестратор (`server/`: `/api/tasks`, escrow, LM и др.). Не FastAPI soltoloka-backend.
    * Устаревший алиас: `VITE_VERBITTO_API_URL`.
