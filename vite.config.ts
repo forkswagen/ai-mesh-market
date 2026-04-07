@@ -14,18 +14,13 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
-    // Оркестратор escrow (server/) :8787. SolToloka — с фронта на публичный URL (см. src/lib/api/soltoloka.ts).
+    // Запасной прокси, если что-то дергает относительные /api с dev-сервера.
+    // Основной код использует абсолютные URL → https://soltoloka-backend.vercel.app (см. src/lib/api/backendOrigin.ts).
     proxy: {
-      "/api": "http://127.0.0.1:8787",
-      "/health": "http://127.0.0.1:8787",
-      "/ws": {
-        target: "http://127.0.0.1:8787",
-        ws: true,
-      },
-      "/ws/agent": {
-        target: "http://127.0.0.1:8787",
-        ws: true,
-      },
+      "/api": { target: "https://soltoloka-backend.vercel.app", changeOrigin: true, secure: true },
+      "/health": { target: "https://soltoloka-backend.vercel.app", changeOrigin: true, secure: true },
+      "/ws": { target: "https://soltoloka-backend.vercel.app", ws: true, changeOrigin: true, secure: true },
+      "/ws/agent": { target: "https://soltoloka-backend.vercel.app", ws: true, changeOrigin: true, secure: true },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

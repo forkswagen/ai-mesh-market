@@ -1,6 +1,7 @@
 import { apiUrl } from "./env";
 
-export type HealthResponse = { status: string; app: string; env: string };
+/** Express-оркестратор и FastAPI могут отличаться полями — разбираем мягко. */
+export type HealthResponse = { status?: string; app?: string; env?: string; ok?: boolean };
 
 export async function fetchApiHealth(): Promise<HealthResponse> {
   const url = apiUrl("/health");
@@ -11,7 +12,7 @@ export async function fetchApiHealth(): Promise<HealthResponse> {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes("expected pattern") || msg.includes("Failed to fetch")) {
       throw new Error(
-        "Не удалось запросить оркестратор. Локально: npm run dev:demo. Прод: проверь VITE_API_BASE_URL (полный https://… без ошибок).",
+        "Не удалось достучаться до бэкенда (SolToloka). Сеть, CORS или неверный VITE_API_BASE_URL / VITE_SOLToloka_API_URL.",
       );
     }
     throw e;
@@ -23,13 +24,13 @@ export async function fetchApiHealth(): Promise<HealthResponse> {
   const trimmed = text.trimStart();
   if (trimmed.startsWith("<") || trimmed.startsWith("<!")) {
     throw new Error(
-      "Ответ не JSON (скорее HTML страницы). На Vercel задай VITE_API_BASE_URL на оркестратор или запусти server/ локально.",
+      "Ответ не JSON (HTML?). Проверь URL бэкенда (по умолчанию soltoloka-backend.vercel.app) и путь /health.",
     );
   }
 
   try {
     return JSON.parse(text) as HealthResponse;
   } catch {
-    throw new Error("Ответ /health не JSON — проверь, что поднят оркестратор server/ и endpoint /health.");
+    throw new Error("Ответ /health не JSON — убедись, что FastAPI бэкенд поднят и отдаёт JSON на /health.");
   }
 }

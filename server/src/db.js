@@ -1,55 +1,265 @@
+import pg from "pg";
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, "..", "data");
-mkdirSync(dataDir, { recursive: true });
-const dbPath = join(dataDir, "deals.sqlite");
+const DATABASE_URL = process.env.DATABASE_URL?.trim();
 
-const db = new Database(dbPath);
+const DEAL_PATCH_COLS = new Set([
+  "deal_id",
+  "buyer",
+  "seller",
+  "amount_lamports",
+  "expected_hash_hex",
+  "state",
+  "init_sig",
+  "deposit_sig",
+  "submit_sig",
+  "judge_sig",
+  "verdict",
+  "reason",
+  "error",
+  "created_at",
+]);
+const VERBITTO_PATCH_COLS = new Set(["chain_task_pubkey"]);
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS deals (
-    id TEXT PRIMARY KEY,
-    deal_id INTEGER NOT NULL,
-    buyer TEXT NOT NULL,
-    seller TEXT NOT NULL,
-    amount_lamports INTEGER NOT NULL,
-    expected_hash_hex TEXT,
-    state TEXT NOT NULL,
-    init_sig TEXT,
-    deposit_sig TEXT,
-    submit_sig TEXT,
-    judge_sig TEXT,
-    verdict INTEGER,
-    reason TEXT,
-    error TEXT,
-    created_at INTEGER NOT NULL
-  );
-`);
+/** @type {pg.Pool | null} */
+let pool = null;
+/** @type {import("better-sqlite3").Database | null} */
+let sqlite = null;
 
-const insert = db.prepare(`
+let pgSchemaReady = false;
+
+function initSqlite() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const dataDir = join(__dirname, "..", "data");
+  mkdirSync(dataDir, { recursive: true });
+  const dbPath = join(dataDir, "deals.sqlite");
+  const db = new Database(dbPath);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS verbitto_offchain_tasks (
+      id TEXT PRIMARY KEY,
+      creator_pubkey TEXT NOT NULL,
+      title TEXT,
+      description TEXT NOT NULL,
+      description_hash_hex TEXT NOT NULL,
+      task_category INTEGER,
+      chain_task_pubkey TEXT,
+      created_at BIGINT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_creator ON verbitto_offchain_tasks(creator_pubkey);
+    CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_created ON verbitto_offchain_tasks(created_at DESC);
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS deals (
+      id TEXT PRIMARY KEY,
+      deal_id BIGINT NOT NULL,
+      buyer TEXT NOT NULL,
+      seller TEXT NOT NULL,
+      amount_lamports BIGINT NOT NULL,
+      expected_hash_hex TEXT,
+      state TEXT NOT NULL,
+      init_sig TEXT,
+      deposit_sig TEXT,
+      submit_sig TEXT,
+      judge_sig TEXT,
+      verdict INTEGER,
+      reason TEXT,
+      error TEXT,
+      created_at BIGINT NOT NULL
+    );
+  `);
+
+  return db;
+}
+
+if (DATABASE_URL) {
+  pool = new pg.Pool({ connectionString: DATABASE_URL });
+} else {
+  sqlite = initSqlite();
+}
+
+async function ensurePostgresSchema() {
+  if (!pool || pgSchemaReady) return;
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS deals (
+        id TEXT PRIMARY KEY,
+        deal_id BIGINT NOT NULL,
+        buyer TEXT NOT NULL,
+        seller TEXT NOT NULL,
+        amount_lamports BIGINT NOT NULL,
+        expected_hash_hex TEXT,
+        state TEXT NOT NULL,
+        init_sig TEXT,
+        deposit_sig TEXT,
+        submit_sig TEXT,
+        judge_sig TEXT,
+        verdict INTEGER,
+        reason TEXT,
+        error TEXT,
+        created_at BIGINT NOT NULL
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS verbitto_offchain_tasks (
+        id TEXT PRIMARY KEY,
+        creator_pubkey TEXT NOT NULL,
+        title TEXT,
+        description TEXT NOT NULL,
+        description_hash_hex TEXT NOT NULL,
+        task_category INTEGER,
+        chain_task_pubkey TEXT,
+        created_at BIGINT NOT NULL
+      );
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_creator ON verbitto_offchain_tasks(creator_pubkey);`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_verbitto_offchain_created ON verbitto_offchain_tasks(created_at DESC);`,
+    );
+  } finally {
+    client.release();
+  }
+  pgSchemaReady = true;
+}
+
+async function pgQ(text, params = []) {
+  await ensurePostgresSchema();
+  const r = await pool.query(text, params);
+  return r;
+}
+
+export function dbDriver() {
+  return DATABASE_URL ? "postgres" : "sqlite";
+}
+
+const insertSqlite = sqlite
+  ? sqlite.prepare(`
   INSERT INTO deals (id, deal_id, buyer, seller, amount_lamports, expected_hash_hex, state, created_at)
   VALUES (@id, @deal_id, @buyer, @seller, @amount_lamports, @expected_hash_hex, @state, @created_at)
-`);
+`)
+  : null;
 
-export function createDeal(row) {
-  insert.run(row);
+const insertVerbittoSqlite = sqlite
+  ? sqlite.prepare(`
+  INSERT INTO verbitto_offchain_tasks (
+    id, creator_pubkey, title, description, description_hash_hex, task_category, chain_task_pubkey, created_at
+  )
+  VALUES (
+    @id, @creator_pubkey, @title, @description, @description_hash_hex, @task_category, @chain_task_pubkey, @created_at
+  )
+`)
+  : null;
+
+export async function createDeal(row) {
+  if (pool) {
+    await pgQ(
+      `INSERT INTO deals (id, deal_id, buyer, seller, amount_lamports, expected_hash_hex, state, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [
+        row.id,
+        row.deal_id,
+        row.buyer,
+        row.seller,
+        row.amount_lamports,
+        row.expected_hash_hex ?? null,
+        row.state,
+        row.created_at,
+      ],
+    );
+    return;
+  }
+  insertSqlite.run(row);
 }
 
-export function patchDeal(id, patch) {
-  const keys = Object.keys(patch).filter((k) => patch[k] !== undefined);
+export async function patchDeal(id, patch) {
+  const keys = Object.keys(patch).filter((k) => patch[k] !== undefined && DEAL_PATCH_COLS.has(k));
   if (keys.length === 0) return;
+  if (pool) {
+    const vals = keys.map((k) => patch[k]);
+    const set = keys.map((k, i) => `${k} = $${i + 1}`).join(", ");
+    await pgQ(`UPDATE deals SET ${set} WHERE id = $${keys.length + 1}`, [...vals, id]);
+    return;
+  }
+  const filtered = Object.fromEntries(keys.map((k) => [k, patch[k]]));
   const set = keys.map((k) => `${k} = @${k}`).join(", ");
-  db.prepare(`UPDATE deals SET ${set} WHERE id = @id`).run({ id, ...patch });
+  sqlite.prepare(`UPDATE deals SET ${set} WHERE id = @id`).run({ id, ...filtered });
 }
 
-export function getDeal(id) {
-  return db.prepare("SELECT * FROM deals WHERE id = ?").get(id);
+export async function getDeal(id) {
+  if (pool) {
+    const { rows } = await pgQ("SELECT * FROM deals WHERE id = $1", [id]);
+    return rows[0] ?? null;
+  }
+  return sqlite.prepare("SELECT * FROM deals WHERE id = ?").get(id);
 }
 
-export function listDeals() {
-  return db.prepare("SELECT * FROM deals ORDER BY created_at DESC").all();
+export async function listDeals() {
+  if (pool) {
+    const { rows } = await pgQ("SELECT * FROM deals ORDER BY created_at DESC");
+    return rows;
+  }
+  return sqlite.prepare("SELECT * FROM deals ORDER BY created_at DESC").all();
+}
+
+export async function createVerbittoOffchainTask(row) {
+  if (pool) {
+    await pgQ(
+      `INSERT INTO verbitto_offchain_tasks (
+        id, creator_pubkey, title, description, description_hash_hex, task_category, chain_task_pubkey, created_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [
+        row.id,
+        row.creator_pubkey,
+        row.title ?? null,
+        row.description,
+        row.description_hash_hex,
+        row.task_category ?? null,
+        row.chain_task_pubkey ?? null,
+        row.created_at,
+      ],
+    );
+    return;
+  }
+  insertVerbittoSqlite.run(row);
+}
+
+export async function getVerbittoOffchainTask(id) {
+  if (pool) {
+    const { rows } = await pgQ("SELECT * FROM verbitto_offchain_tasks WHERE id = $1", [id]);
+    return rows[0] ?? null;
+  }
+  return sqlite.prepare("SELECT * FROM verbitto_offchain_tasks WHERE id = ?").get(id);
+}
+
+export async function listVerbittoOffchainTasks({ limit = 50 } = {}) {
+  const n = Math.min(Math.max(Number(limit) || 50, 1), 200);
+  if (pool) {
+    const { rows } = await pgQ(
+      "SELECT * FROM verbitto_offchain_tasks ORDER BY created_at DESC LIMIT $1",
+      [n],
+    );
+    return rows;
+  }
+  return sqlite.prepare("SELECT * FROM verbitto_offchain_tasks ORDER BY created_at DESC LIMIT ?").all(n);
+}
+
+export async function patchVerbittoOffchainTask(id, patch) {
+  const keys = Object.keys(patch).filter((k) => patch[k] !== undefined && VERBITTO_PATCH_COLS.has(k));
+  if (keys.length === 0) return;
+  if (pool) {
+    const vals = keys.map((k) => patch[k]);
+    const set = keys.map((k, i) => `${k} = $${i + 1}`).join(", ");
+    await pgQ(`UPDATE verbitto_offchain_tasks SET ${set} WHERE id = $${keys.length + 1}`, [...vals, id]);
+    return;
+  }
+  const filtered = Object.fromEntries(keys.map((k) => [k, patch[k]]));
+  const set = keys.map((k) => `${k} = @${k}`).join(", ");
+  sqlite.prepare(`UPDATE verbitto_offchain_tasks SET ${set} WHERE id = @id`).run({ id, ...filtered });
 }

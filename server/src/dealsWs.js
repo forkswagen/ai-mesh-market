@@ -94,11 +94,15 @@ export function attachDealsWebSocket(server) {
     ws.on("pong", () => {
       ws.isAlive = true;
     });
-    try {
-      ws.send(JSON.stringify({ type: "deals_snapshot", deals: listDeals() }));
-    } catch {
-      /* ignore */
-    }
+    void listDeals()
+      .then((deals) => {
+        try {
+          ws.send(JSON.stringify({ type: "deals_snapshot", deals }));
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {});
   });
 
   agentWss.on("connection", (ws) => {
@@ -135,11 +139,17 @@ export function attachDealsWebSocket(server) {
   }, 20_000);
 }
 
-export function broadcastDealsUpdate() {
+export async function broadcastDealsUpdate() {
   if (!dealsWss) return;
+  let deals;
+  try {
+    deals = await listDeals();
+  } catch {
+    return;
+  }
   let payload;
   try {
-    payload = JSON.stringify({ type: "deals_snapshot", deals: listDeals() });
+    payload = JSON.stringify({ type: "deals_snapshot", deals });
   } catch {
     return;
   }

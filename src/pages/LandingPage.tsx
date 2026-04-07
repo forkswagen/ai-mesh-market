@@ -212,11 +212,12 @@ export default function LandingPage() {
               <p className="text-xs font-medium uppercase tracking-widest text-purple-400">Оркестратор</p>
               <p className="mt-3 text-sm text-white/70 leading-relaxed">
                 Локальный или задеплоенный API соединяет REST-контракт с транзакциями: seeded demo в один клик в UI,
-                продакшен — с переменными <code className="text-purple-200">VITE_API_BASE_URL</code> и CORS на стороне
+                продакшен — бэкенд <strong className="text-purple-200">soltoloka-backend</strong> (Vercel), при необходимости{" "}
+                <code className="text-purple-200">VITE_API_BASE_URL</code> и CORS на стороне
                 сервера.
               </p>
               <p className="mt-4 text-sm text-white/50">
-                Подробности развёртывания — в README репозитория (Vercel + Railway).
+                Подробности развёртывания — в README (фронт и бэк на Vercel).
               </p>
             </div>
           </motion.div>

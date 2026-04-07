@@ -1,28 +1,21 @@
 /**
- * SolToloka FastAPI: браузер ходит на абсолютный URL (CORS на бэке).
- * По умолчанию — публичный деплой; переопределение: VITE_SOLToloka_API_URL (без слэша в конце).
+ * SolToloka FastAPI — тот же хост, что и остальной API (`getBackendOrigin`).
+ * Документация: `{origin}/docs`
  */
-export const SOLToloka_DEFAULT_ORIGIN = "https://soltoloka-backend.vercel.app";
+import { DEFAULT_BACKEND_ORIGIN, getBackendOrigin } from "@/lib/api/backendOrigin";
+
+/** @deprecated используйте DEFAULT_BACKEND_ORIGIN */
+export const SOLToloka_DEFAULT_ORIGIN = DEFAULT_BACKEND_ORIGIN;
 
 export function soltolokaOrigin(): string {
-  const raw = import.meta.env.VITE_SOLToloka_API_URL?.trim();
-  if (raw) {
-    try {
-      const u = new URL(raw);
-      if (u.protocol !== "http:" && u.protocol !== "https:") return SOLToloka_DEFAULT_ORIGIN;
-    } catch {
-      return SOLToloka_DEFAULT_ORIGIN;
-    }
-    return raw.replace(/\/$/, "");
-  }
-  return SOLToloka_DEFAULT_ORIGIN;
+  return getBackendOrigin();
 }
 
 export function soltolokaApiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `${soltolokaOrigin()}${normalized}`;
+  return `${getBackendOrigin()}${normalized}`;
 }
 
 export function soltolokaDocsUrl(): string {
-  return `${soltolokaOrigin()}/docs`;
+  return `${getBackendOrigin()}/docs`;
 }

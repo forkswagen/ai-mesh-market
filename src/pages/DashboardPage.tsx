@@ -59,14 +59,15 @@ export default function DashboardPage() {
         <div className="flex items-start gap-3 min-w-0">
           <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-foreground">Оркестратор escrow (Node server/)</p>
+            <p className="text-sm font-medium text-foreground">API (SolToloka backend · Vercel)</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Главная страница показывает демо-цифры из UI. Живые данные escrow — в разделе{" "}
+              Главная — демо-цифры в UI. Проверка <code className="bg-muted px-1 rounded">/health</code> идёт на{" "}
+              <strong className="text-foreground/90">forkswagen/soltoloka-backend</strong> (
+              <code className="bg-muted px-1 rounded">VITE_API_BASE_URL</code> / дефолт в коде). Живой escrow —{" "}
               <Link to="/escrow" className="text-primary hover:underline">
                 AI Escrow
               </Link>
-              . Локально: оркестратор <code className="bg-muted px-1 rounded">server/</code> на :8787, Vite проксирует{" "}
-              <code className="bg-muted px-1 rounded">/api</code> и <code className="bg-muted px-1 rounded">/health</code>.
+              .
             </p>
           </div>
         </div>
@@ -89,7 +90,13 @@ export default function DashboardPage() {
             <>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span className="text-foreground/90 text-xs">
-                {healthQ.data.app} · <span className="text-muted-foreground">{healthQ.data.env}</span>
+                {healthQ.data.app ?? healthQ.data.status ?? "ok"}
+                {healthQ.data.env ? (
+                  <>
+                    {" "}
+                    · <span className="text-muted-foreground">{healthQ.data.env}</span>
+                  </>
+                ) : null}
               </span>
             </>
           )}

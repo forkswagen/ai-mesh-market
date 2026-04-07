@@ -3,12 +3,14 @@ import http from "node:http";
 import express from "express";
 import cors from "cors";
 import { randomUUID, createHash } from "node:crypto";
-import { createDeal, patchDeal, getDeal, listDeals } from "./db.js";
+import { createDeal, patchDeal, getDeal, listDeals, dbDriver } from "./db.js";
 import { attachDealsWebSocket, broadcastDealsUpdate } from "./dealsWs.js";
 import { runOracle } from "./oracle.mjs";
 import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
 import { PublicKey } from "@solana/web3.js";
+import { attachVerbittoRoutes } from "./verbitto.js";
+import { fetchHuggingFaceDatasets, fetchKaggleDatasets } from "./datasetsHub.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
@@ -23,6 +25,39 @@ function corsOrigins() {
 
 app.use(cors({ origin: corsOrigins(), credentials: true }));
 app.use(express.json({ limit: "2mb" }));
+
+attachVerbittoRoutes(app);
+
+/** Поиск датасетов в Hugging Face Hub (публичный API). */
+app.get("/api/datasets/hub/huggingface", async (req, res) => {
+  const q = typeof req.query.q === "string" ? req.query.q : "";
+  const limit = req.query.limit;
+  try {
+    const items = await fetchHuggingFaceDatasets({ search: q, limit: Number(limit) || 24 });
+    res.json({ ok: true, source: "huggingface", items });
+  } catch (e) {
+    console.error(e);
+    res.status(502).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+/** Поиск датасетов Kaggle (list API; опционально KAGGLE_USERNAME + KAGGLE_KEY). */
+app.get("/api/datasets/hub/kaggle", async (req, res) => {
+  const q = typeof req.query.q === "string" ? req.query.q : "";
+  const page = req.query.page;
+  const pageSize = req.query.pageSize;
+  try {
+    const items = await fetchKaggleDatasets({
+      search: q,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 20,
+    });
+    res.json({ ok: true, source: "kaggle", items });
+  } catch (e) {
+    console.error(e);
+    res.status(502).json({ ok: false, error: String(e?.message || e) });
+  }
+});
 
 function sha256hex(s) {
   return createHash("sha256").update(s, "utf8").digest("hex");
@@ -55,7 +90,7 @@ async function processDeal(body, res) {
   const expectedHashHex = expectedOverride || sha256hex(deliverableText || "demo");
   const submittedHashHex = expectedHashHex;
 
-  createDeal({
+  await createDeal({
     id,
     deal_id: dealId,
     buyer: buyerPublicKey,
@@ -65,7 +100,7 @@ async function processDeal(body, res) {
     state: "created",
     created_at: Date.now(),
   });
-  broadcastDealsUpdate();
+  await broadcastDealsUpdate();
 
   if (!runChain) {
     return res.status(201).json({ id, state: "created", expectedHashHex });
@@ -76,8 +111,8 @@ async function processDeal(body, res) {
   const oracleSec = process.env.ORACLE_SECRET_JSON;
 
   if (!buyerSec || !sellerSec || !oracleSec) {
-    patchDeal(id, { state: "error", error: "Missing BUYER_SECRET_JSON / SELLER_SECRET_JSON / ORACLE_SECRET_JSON" });
-    broadcastDealsUpdate();
+    await patchDeal(id, { state: "error", error: "Missing BUYER_SECRET_JSON / SELLER_SECRET_JSON / ORACLE_SECRET_JSON" });
+    await broadcastDealsUpdate();
     return res.status(503).json({
       id,
       error: "Server keys not configured; set secrets in server/.env (see .env.example)",
@@ -89,8 +124,8 @@ async function processDeal(body, res) {
   const oracleKp = loadKp(oracleSec);
 
   if (buyerKp.publicKey.toBase58() !== buyerPublicKey || sellerKp.publicKey.toBase58() !== sellerPublicKey) {
-    patchDeal(id, { state: "error", error: "Public keys do not match BUYER/SELLER secrets" });
-    broadcastDealsUpdate();
+    await patchDeal(id, { state: "error", error: "Public keys do not match BUYER/SELLER secrets" });
+    await broadcastDealsUpdate();
     return res.status(400).json({ error: "buyer/seller pubkeys must match server keypair secrets" });
   }
 
@@ -98,8 +133,8 @@ async function processDeal(body, res) {
   const connection = new Connection(rpc, "confirmed");
 
   try {
-    patchDeal(id, { state: "chain_in_progress" });
-    broadcastDealsUpdate();
+    await patchDeal(id, { state: "chain_in_progress" });
+    await broadcastDealsUpdate();
     const oracleResult = await runOracle(deliverableText, process.env, {
       oracleLlmModel: typeof oracleLlmModel === "string" ? oracleLlmModel : undefined,
     });
@@ -117,7 +152,7 @@ async function processDeal(body, res) {
       reason: oracleResult.reason,
     });
 
-    patchDeal(id, {
+    await patchDeal(id, {
       state: "settled",
       init_sig: chain.sigInit,
       deposit_sig: chain.sigDep,
@@ -127,7 +162,7 @@ async function processDeal(body, res) {
       reason: oracleResult.reason,
       error: null,
     });
-    broadcastDealsUpdate();
+    await broadcastDealsUpdate();
 
     return res.status(201).json({
       id,
@@ -138,8 +173,8 @@ async function processDeal(body, res) {
     });
   } catch (e) {
     console.error(e);
-    patchDeal(id, { state: "error", error: String(e.message || e) });
-    broadcastDealsUpdate();
+    await patchDeal(id, { state: "error", error: String(e.message || e) });
+    await broadcastDealsUpdate();
     return res.status(500).json({ id, error: String(e.message || e) });
   }
 }
@@ -180,6 +215,7 @@ app.get("/health", (_req, res) => {
     env: process.env.NODE_ENV || "development",
     ok: true,
     programId,
+    db: dbDriver(),
   });
 });
 
@@ -196,12 +232,12 @@ app.post("/api/v1/auth/verify", (req, res) => {
   });
 });
 
-app.get("/api/deals", (_req, res) => {
-  res.json({ deals: listDeals() });
+app.get("/api/deals", async (_req, res) => {
+  res.json({ deals: await listDeals() });
 });
 
-app.get("/api/deals/:id", (req, res) => {
-  const row = getDeal(req.params.id);
+app.get("/api/deals/:id", async (req, res) => {
+  const row = await getDeal(req.params.id);
   if (!row) return res.status(404).json({ error: "not found" });
   res.json(row);
 });

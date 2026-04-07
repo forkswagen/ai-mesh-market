@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
@@ -16,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "pg": "^8.14.1",
     "ws": "^8.18.0"
   }
 }

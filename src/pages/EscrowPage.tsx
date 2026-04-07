@@ -82,9 +82,10 @@ export default function EscrowPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · NexusAI</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Agent economy: серверный оркул (LLM или эвристика) подписывает{" "}
-          <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. Локально: оркестратор{" "}
-          <code className="text-xs bg-muted px-1 rounded">server/ :8787</code> (или <code className="text-xs bg-muted px-1 rounded">depai-backend</code>). Контракт{" "}
+          Agent economy: оркул подписывает <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. REST по
+          умолчанию — <strong className="text-foreground/90">soltoloka-backend</strong> на Vercel; сценарии{" "}
+          <code className="text-xs bg-muted px-1 rounded">/api/deals</code>, WebSocket и LM Studio нужно поддерживать там или
+          поднимать опциональный <code className="text-xs bg-muted px-1 rounded">server/</code> из монорепо. Программа{" "}
           <span className="text-foreground/90">data_arbiter</span>
         </p>
       </div>
@@ -101,7 +102,7 @@ export default function EscrowPage() {
         {healthQ.isLoading && (
           <>
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground">Проверка оркестратора…</span>
+            <span className="text-muted-foreground">Проверка /health…</span>
           </>
         )}
         {healthQ.isError && (
@@ -117,7 +118,13 @@ export default function EscrowPage() {
           <>
             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
             <span className="text-foreground">
-              Оркестратор доступен: {healthQ.data.app} · <span className="text-muted-foreground">{healthQ.data.env}</span>
+              API доступен: {healthQ.data.app ?? healthQ.data.status ?? "ok"}
+              {healthQ.data.env ? (
+                <>
+                  {" "}
+                  · <span className="text-muted-foreground">{healthQ.data.env}</span>
+                </>
+              ) : null}
             </span>
           </>
         )}
@@ -176,11 +183,10 @@ export default function EscrowPage() {
         <div className="min-w-0">
           <h2 className="font-heading font-semibold text-foreground text-sm">Demo: полный цикл on-chain</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Запуск из корня: <code className="bg-muted px-1 rounded">npm run dev:demo</code> (или отдельно{" "}
-            <code className="bg-muted px-1 rounded">server/</code> + <code className="bg-muted px-1 rounded">npm run dev</code>).
-            Vite проксирует <code className="bg-muted px-1 rounded">/api</code> → <code className="bg-muted px-1 rounded">127.0.0.1:8787</code>.
-            Список сделок с локального оркестратора работает без JWT; <code className="bg-muted px-1 rounded">VITE_DEPAI_DEV_WALLET</code> в{" "}
-            <code className="bg-muted px-1 rounded">.env.local</code> — опционально для auth на depai-backend.
+            Кнопка работает, если на выбранном бэкенде реализованы{" "}
+            <code className="bg-muted px-1 rounded">POST /api/demo/seeded</code> и ключи (как в монорепо{" "}
+            <code className="bg-muted px-1 rounded">server/</code>). Иначе поднимите локально{" "}
+            <code className="bg-muted px-1 rounded">npm run dev:demo</code> из корня или перенесите ручки в soltoloka-backend.
           </p>
         </div>
         <Button
@@ -232,7 +238,7 @@ export default function EscrowPage() {
 
       <div className="surface overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-heading font-semibold text-foreground">Сделки оркестратора</h2>
+          <h2 className="font-heading font-semibold text-foreground">Сделки (GET /api/deals)</h2>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <AlertTriangle className="h-3.5 w-3.5" />
             GET /api/deals
