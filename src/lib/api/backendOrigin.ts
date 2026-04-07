@@ -1,8 +1,10 @@
 /**
  * Основной бэкенд фронта — Node-оркестратор (`server/`: escrow, задачи, LM, WebSocket).
  *
- * В dev без `VITE_API_BASE_URL` используется `http://127.0.0.1:8787`.
- * В проде задайте `VITE_API_BASE_URL` на URL деплоя `server/`.
+ * - `vite` dev: без `VITE_API_BASE_URL` → `http://127.0.0.1:8787`.
+ * - `vite build` + открытие с localhost / 127.0.0.1 (в т.ч. preview): тот же localhost-оркестратор.
+ * - Продакшен-деплой (Vercel и т.д.) без переменной: **пустая строка** — нельзя молча слать браузер на loopback.
+ *   Задайте `VITE_API_BASE_URL` на публичный URL `server/` и пересоберите фронт.
  */
 
 const LOCAL_NODE_ORCHESTRATOR = "http://127.0.0.1:8787";
@@ -26,9 +28,24 @@ function normalizeOrigin(raw: string): string | null {
 export function getBackendOrigin(): string {
   const explicit = normalizeOrigin(String(import.meta.env.VITE_API_BASE_URL || ""));
   if (explicit) return explicit;
-  if (import.meta.env.DEV) return LOCAL_NODE_ORCHESTRATOR;
-  /* prod: без явного URL браузер не достучится до localhost — задайте VITE_API_BASE_URL */
-  return LOCAL_NODE_ORCHESTRATOR;
+
+  if (import.meta.env.DEV) {
+    return LOCAL_NODE_ORCHESTRATOR;
+  }
+
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    if (h === "localhost" || h === "127.0.0.1") {
+      return LOCAL_NODE_ORCHESTRATOR;
+    }
+  }
+
+  return "";
+}
+
+/** false на прод-версии сайта без VITE_API_BASE_URL — нужен Redeploy с env. */
+export function isOrchestratorOriginConfigured(): boolean {
+  return Boolean(getBackendOrigin());
 }
 
 /** Отдельный хост SolToloka FastAPI (compute nodes, `/docs`). Не смешиваем с оркестратором. */

@@ -44,7 +44,14 @@ function corsOrigins() {
   return [...new Set(list)];
 }
 
-app.use(cors({ origin: corsOrigins(), credentials: true }));
+app.use(
+  cors({
+    origin: corsOrigins(),
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Agent-Control-Secret"],
+    exposedHeaders: ["Content-Type"],
+  }),
+);
 app.use(express.json({ limit: "2mb" }));
 
 attachPlatformTaskRoutes(app);

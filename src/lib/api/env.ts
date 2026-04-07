@@ -12,6 +12,13 @@ export function apiBase(): string {
 export function apiUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const base = getBackendOrigin();
+  if (!base) {
+    throw new Error(
+      "В этой сборке не задан VITE_API_BASE_URL. В Vercel: Settings → Environment Variables → " +
+        "VITE_API_BASE_URL = публичный URL оркестратора (server/, например Railway), Production, затем Redeploy. " +
+        "На server задайте CORS: VITE_DEV_ORIGIN = origin фронта (например https://ваш-проект.vercel.app).",
+    );
+  }
   try {
     return new URL(normalized, `${base.replace(/\/$/, "")}/`).href;
   } catch {

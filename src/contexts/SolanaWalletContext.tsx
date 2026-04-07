@@ -10,6 +10,7 @@ import {
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { getSolanaRpcUrl } from "@/lib/solana/rpc";
 import type { InjectedSolana } from "@/types/window-solana";
+import { resolvePhantomProvider } from "@/types/window-solana";
 import { toast } from "sonner";
 
 type SolanaWalletContextValue = {
@@ -33,10 +34,7 @@ type SolanaWalletContextValue = {
 const SolanaWalletContext = createContext<SolanaWalletContextValue | null>(null);
 
 function getPhantom(): InjectedSolana | undefined {
-  if (typeof window === "undefined") return undefined;
-  const s = window.solana;
-  if (s?.isPhantom) return s;
-  return undefined;
+  return resolvePhantomProvider();
 }
 
 export function SolanaWalletProvider({ children }: { children: ReactNode }) {
@@ -44,11 +42,27 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   const [solBalance, setSolBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  /** Расширение инжектит провайдер асинхронно — без повторной проверки hasPhantom залипает false. */
+  const [hasPhantom, setHasPhantom] = useState(() =>
+    typeof window !== "undefined" ? Boolean(resolvePhantomProvider()) : false,
+  );
 
   const devWalletPubkey = import.meta.env.VITE_DEPAI_DEV_WALLET?.trim() || null;
 
-  const phantom = typeof window !== "undefined" ? getPhantom() : undefined;
-  const hasPhantom = Boolean(phantom);
+  useEffect(() => {
+    const refresh = () => setHasPhantom(Boolean(resolvePhantomProvider()));
+    refresh();
+    const id = window.setInterval(refresh, 250);
+    const stop = window.setTimeout(() => window.clearInterval(id), 10_000);
+    window.addEventListener("load", refresh);
+    window.addEventListener("phantom#initialized", refresh);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(stop);
+      window.removeEventListener("load", refresh);
+      window.removeEventListener("phantom#initialized", refresh);
+    };
+  }, []);
 
   const fetchBalance = useCallback(async (pubkey: string) => {
     setBalanceLoading(true);

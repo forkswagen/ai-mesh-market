@@ -334,9 +334,11 @@ export default function EscrowPage() {
         ) : dealsQ.isError ? (
           <div className="p-6 text-sm text-muted-foreground space-y-2">
             <p>
-              Нет связи с <code className="bg-muted px-1 rounded">GET /api/deals</code>. {orchestratorConnectionHint()}
+              Нет связи с <code className="bg-muted px-1 rounded">GET /api/deals</code>.
             </p>
-            <p className="text-destructive text-xs">{(dealsQ.error as Error).message}</p>
+            <p className="text-destructive text-xs whitespace-pre-wrap leading-relaxed">
+              {(dealsQ.error as Error).message}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-border">

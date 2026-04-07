@@ -1,5 +1,5 @@
-import { apiUrl } from "./env";
 import { authHeaders, ensureDepaiToken } from "./depaiAuth";
+import { orchestratorFetch } from "./orchestratorFetch";
 
 /** Orchestrator-совместимые ручки на depai-backend (см. app/api/nexus_bridge.py; legacy имя модуля). */
 async function parseError(res: Response): Promise<string> {
@@ -31,14 +31,14 @@ export type OrchestratorDeal = {
 
 export async function fetchDealsList(): Promise<{ deals: OrchestratorDeal[] }> {
   await ensureDepaiToken();
-  const r = await fetch(apiUrl("/api/deals"), { headers: { ...authHeaders() } });
+  const r = await orchestratorFetch("/api/deals", { headers: { ...authHeaders() } });
   if (!r.ok) throw new Error(await parseError(r));
   return r.json();
 }
 
 export async function fetchDeal(id: string): Promise<OrchestratorDeal> {
   await ensureDepaiToken();
-  const r = await fetch(apiUrl(`/api/deals/${id}`), { headers: { ...authHeaders() } });
+  const r = await orchestratorFetch(`/api/deals/${id}`, { headers: { ...authHeaders() } });
   if (!r.ok) throw new Error(await parseError(r));
   return r.json();
 }
@@ -53,7 +53,7 @@ export type DemoSeededResult = {
 };
 
 export async function postDemoSeeded(body?: Record<string, unknown>): Promise<DemoSeededResult> {
-  const r = await fetch(apiUrl("/api/demo/seeded"), {
+  const r = await orchestratorFetch("/api/demo/seeded", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body || {}),

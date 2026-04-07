@@ -12,9 +12,24 @@ export type InjectedSolana = {
   ) => void;
 };
 
+/** Phantom: официальный провайдер часто только в `window.phantom.solana`; `window.solana` может быть занят другим кошельком. */
+export function resolvePhantomProvider(): InjectedSolana | undefined {
+  if (typeof window === "undefined") return undefined;
+  const fromPhantomNs = window.phantom?.solana;
+  if (fromPhantomNs && typeof fromPhantomNs.connect === "function") {
+    return fromPhantomNs;
+  }
+  const s = window.solana;
+  if (s?.isPhantom === true && typeof s.connect === "function") {
+    return s;
+  }
+  return undefined;
+}
+
 declare global {
   interface Window {
     solana?: InjectedSolana;
+    phantom?: { solana?: InjectedSolana };
   }
 }
 
