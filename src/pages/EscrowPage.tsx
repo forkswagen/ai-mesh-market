@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Lock, CheckCircle, Bot, Scale, AlertTriangle, ArrowRight, Loader2, Play, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DATA_ARBITER_PROGRAM_ID, AI_JUDGE_MAX_REASON_BYTES } from "@/lib/solana/escrow";
@@ -7,6 +8,7 @@ import { orchestratorConnectionHint } from "@/lib/api/connectionHints";
 import { fetchDealsList, postDemoSeeded } from "@/lib/api/deals";
 import { fetchApiHealth } from "@/lib/api/health";
 import { useOrchestratorDealsWs } from "@/hooks/useOrchestratorDealsWs";
+import { useAgentChannelWs } from "@/hooks/useAgentChannelWs";
 import { toast } from "sonner";
 
 const steps = [
@@ -37,6 +39,8 @@ function stateBadge(state: string) {
 export default function EscrowPage() {
   const qc = useQueryClient();
   useOrchestratorDealsWs(qc);
+  const agentWs = useAgentChannelWs(true);
+  const [oracleModel, setOracleModel] = useState("");
   const healthQ = useQuery({
     queryKey: ["api", "health"],
     queryFn: fetchApiHealth,
@@ -50,7 +54,10 @@ export default function EscrowPage() {
   });
 
   const demoM = useMutation({
-    mutationFn: () => postDemoSeeded({}),
+    mutationFn: () =>
+      postDemoSeeded({
+        ...(oracleModel.trim() ? { oracleLlmModel: oracleModel.trim() } : {}),
+      }),
     onSuccess: (data) => {
       if (data.state === "settled") {
         toast.success("Сделка закрыта on-chain (ai_judge)");
@@ -114,6 +121,55 @@ export default function EscrowPage() {
             </span>
           </>
         )}
+      </div>
+
+      <div className="surface p-5 space-y-3 border-border">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <h2 className="font-heading font-semibold text-foreground text-sm">Agent ↔ backend ↔ frontend</h2>
+            <p className="text-xs text-muted-foreground leading-snug">
+              Список моделей приходит с LM Studio через оркестратор (<code className="bg-muted px-1 rounded">/ws/agent</code>,{" "}
+              <code className="bg-muted px-1 rounded">GET /api/agent/models</code>). В браузере нет прямого доступа к LM Studio.
+              В <code className="bg-muted px-1 rounded">server/.env</code> задай{" "}
+              <code className="bg-muted px-1 rounded">LM_STUDIO_BASE_URL</code> и при необходимости{" "}
+              <code className="bg-muted px-1 rounded">ORACLE_LLM_URL</code>.
+            </p>
+            {agentWs.snapshot?.baseUrl && (
+              <p className="text-xs font-mono break-all text-muted-foreground">LM: {agentWs.snapshot.baseUrl}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className={agentWs.connected ? "border-green-500/40 text-green-400" : ""}>
+              WS agent {agentWs.connected ? "online" : "…"}
+            </Badge>
+            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => agentWs.refresh()}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Обновить модели
+            </Button>
+          </div>
+        </div>
+        {agentWs.snapshot?.error && (
+          <p className="text-xs text-destructive leading-snug">{agentWs.snapshot.error}</p>
+        )}
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <label className="text-xs text-muted-foreground shrink-0" htmlFor="oracle-model">
+            Модель для oracle (seeded demo)
+          </label>
+          <select
+            id="oracle-model"
+            className="flex h-9 w-full sm:max-w-md rounded-md border border-input bg-background px-3 py-1 text-sm"
+            value={oracleModel}
+            onChange={(e) => setOracleModel(e.target.value)}
+            disabled={demoM.isPending}
+          >
+            <option value="">По умолчанию (ORACLE_LLM_MODEL в .env)</option>
+            {(agentWs.snapshot?.models || []).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="surface p-5 space-y-3 border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

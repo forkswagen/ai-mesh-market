@@ -9,6 +9,7 @@ import {
 } from "@solana/web3.js";
 import {
   encodeInitializeEscrow,
+  encodeInitializeEscrowLegacy,
   encodeDeposit,
   encodeSubmitDatasetHash,
   encodeAiJudge,
@@ -50,18 +51,34 @@ export async function runFullChain({
   const seller = sellerKp.publicKey;
   const [escrowPda] = deriveEscrowPda(buyer, seller, dealId, programId);
 
-  const sigInit = await sendTx(connection, buyerKp, [
-    new TransactionInstruction({
-      programId,
-      keys: [
-        { pubkey: buyer, isSigner: true, isWritable: true },
-        { pubkey: seller, isSigner: false, isWritable: false },
-        { pubkey: escrowPda, isSigner: false, isWritable: true },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      ],
-      data: encodeInitializeEscrow(dealId, amountLamports, expectedHashHex, null),
-    }),
-  ]);
+  const initKeys = [
+    { pubkey: buyer, isSigner: true, isWritable: true },
+    { pubkey: seller, isSigner: false, isWritable: false },
+    { pubkey: escrowPda, isSigner: false, isWritable: true },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+  let sigInit;
+  try {
+    sigInit = await sendTx(connection, buyerKp, [
+      new TransactionInstruction({
+        programId,
+        keys: initKeys,
+        data: encodeInitializeEscrow(dealId, amountLamports, expectedHashHex, null),
+      }),
+    ]);
+  } catch (modernErr) {
+    try {
+      sigInit = await sendTx(connection, buyerKp, [
+        new TransactionInstruction({
+          programId,
+          keys: initKeys,
+          data: encodeInitializeEscrowLegacy(dealId, amountLamports, expectedHashHex),
+        }),
+      ]);
+    } catch {
+      throw modernErr;
+    }
+  }
 
   const sigDep = await sendTx(connection, buyerKp, [
     new TransactionInstruction({

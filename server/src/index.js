@@ -6,6 +6,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { createDeal, patchDeal, getDeal, listDeals } from "./db.js";
 import { attachDealsWebSocket, broadcastDealsUpdate } from "./dealsWs.js";
 import { runOracle } from "./oracle.mjs";
+import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
 import { PublicKey } from "@solana/web3.js";
 
@@ -36,6 +37,7 @@ async function processDeal(body, res) {
     deliverableText = "",
     runChain = false,
     expectedHashHex: expectedOverride,
+    oracleLlmModel,
   } = body || {};
 
   if (!dealId || !buyerPublicKey || !sellerPublicKey || !amountLamports) {
@@ -98,7 +100,9 @@ async function processDeal(body, res) {
   try {
     patchDeal(id, { state: "chain_in_progress" });
     broadcastDealsUpdate();
-    const oracleResult = await runOracle(deliverableText, process.env);
+    const oracleResult = await runOracle(deliverableText, process.env, {
+      oracleLlmModel: typeof oracleLlmModel === "string" ? oracleLlmModel : undefined,
+    });
 
     const chain = await runFullChain({
       connection,
@@ -139,6 +143,34 @@ async function processDeal(body, res) {
     return res.status(500).json({ id, error: String(e.message || e) });
   }
 }
+
+/** Список моделей LM Studio (agent) — фронт не ходит в LM Studio напрямую. */
+app.get("/api/agent/models", async (_req, res) => {
+  try {
+    const { baseUrl, models } = await fetchLmStudioModels();
+    res.json({ ok: true, baseUrl, models });
+  } catch (e) {
+    res.status(503).json({
+      ok: false,
+      baseUrl: getLmStudioBaseUrl(),
+      models: [],
+      error: String(e.message || e),
+    });
+  }
+});
+
+/** Только оракул (LM Studio / эвристика), без Solana — для Streamlit и отладки. */
+app.post("/api/agent/oracle", async (req, res) => {
+  const { deliverableText = "", oracleLlmModel } = req.body || {};
+  try {
+    const result = await runOracle(String(deliverableText), process.env, {
+      oracleLlmModel: typeof oracleLlmModel === "string" ? oracleLlmModel : undefined,
+    });
+    res.json({ ok: true, verdict: result.verdict, reason: result.reason, source: result.source });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e) });
+  }
+});
 
 app.get("/health", (_req, res) => {
   const programId = process.env.PROGRAM_ID || "9vZy3wDuyeWiajhxG8WCFxHMXAijrzmCTbmA44XaV7cg";
@@ -202,6 +234,7 @@ app.post("/api/demo/seeded", (req, res) => {
       amountLamports,
       deliverableText,
       runChain: true,
+      oracleLlmModel: req.body?.oracleLlmModel,
     },
     res,
   ).catch((e) => res.status(500).json({ error: String(e) }));
@@ -214,5 +247,7 @@ app.post("/api/deals/:id/oracle", (_req, res) => {
 const server = http.createServer(app);
 attachDealsWebSocket(server);
 server.listen(PORT, () => {
-  console.log(`depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")}) ws /ws`);
+  console.log(
+    `depai-orchestrator http://localhost:${PORT} (cors ${corsOrigins().join(", ")}) ws /ws /ws/agent`,
+  );
 });

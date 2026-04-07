@@ -22,6 +22,10 @@ export default defineConfig(({ mode }) => ({
         target: "http://127.0.0.1:8787",
         ws: true,
       },
+      "/ws/agent": {
+        target: "http://127.0.0.1:8787",
+        ws: true,
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

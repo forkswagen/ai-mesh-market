@@ -10,6 +10,24 @@
 
 ## Запуск
 
+### Быстро для демо (локальный devnet)
+
+Из **корня** монорепо:
+
+```bash
+npm run setup:devnet
+```
+
+Создаёт `server/.env` с тремя keypair и пытается airdrop. Если RPC ответил **429** — пополни вручную:
+
+```bash
+npm run demo:addrs
+```
+
+Адреса открой в [faucet.solana.com](https://faucet.solana.com) (network **devnet**, по ~1–2 SOL на каждый).
+
+### Вручную
+
 ```bash
 cp .env.example .env
 # заполни BUYER_SECRET_JSON, SELLER_SECRET_JSON, ORACLE_SECRET_JSON (JSON array bytes как в solana-keygen)
@@ -18,6 +36,8 @@ npm run dev
 ```
 
 Все три ключа должны иметь SOL на devnet. Покупатель дополнительно оплачивает `amountLamports` при `deposit`.
+
+Проверка: из корня `npm run demo:check` (оркестратор должен слушать **:8787**).
 
 ## LLM oracle
 

@@ -38,6 +38,12 @@ export function encodeInitializeEscrow(dealId, amountLamports, expectedHashHex, 
   return Buffer.concat(parts);
 }
 
+/** Legacy ABI: initialize_escrow(deal_id, amount, expected_hash) without judge_authority. */
+export function encodeInitializeEscrowLegacy(dealId, amountLamports, expectedHashHex) {
+  const expected = hexTo32(expectedHashHex);
+  return Buffer.concat([IX.initialize_escrow, u64LE(dealId), u64LE(amountLamports), expected]);
+}
+
 export function encodeDeposit() {
   return Buffer.from(IX.deposit);
 }
