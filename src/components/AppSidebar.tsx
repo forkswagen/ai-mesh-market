@@ -36,11 +36,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-heading font-bold text-sm">N</span>
+            <span className="text-primary-foreground font-heading font-bold text-sm">E</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="font-heading font-bold text-foreground text-lg leading-tight">NexusAI</span>
+              <span className="font-heading font-bold text-foreground text-lg leading-tight">Escora</span>
               <span className="text-[10px] text-muted-foreground truncate">Agent Economy · AI Escrow (devnet)</span>
             </div>
           )}

@@ -25,7 +25,7 @@ export function getBackendOrigin(): string {
     if (raw == null || !String(raw).trim()) continue;
     const n = normalizeOrigin(String(raw));
     if (n) return n;
-    console.warn(`[NexusAI] ${key} не похож на URL — пробуем следующий / дефолт.`);
+    console.warn(`[Escora] ${key} не похож на URL — пробуем следующий / дефолт.`);
   }
   return DEFAULT_BACKEND_ORIGIN;
 }
@@ -43,7 +43,7 @@ export function getVerbittoApiOrigin(): string | null {
   if (raw != null && String(raw).trim()) {
     const n = normalizeOrigin(String(raw));
     if (n) return n;
-    console.warn("[NexusAI] VITE_VERBITTO_API_URL не похож на URL.");
+    console.warn("[Escora] VITE_VERBITTO_API_URL не похож на URL.");
   }
   if (import.meta.env.DEV) return LOCAL_NODE_ORCHESTRATOR;
   return null;

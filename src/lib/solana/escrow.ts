@@ -1,5 +1,5 @@
 /**
- * Client helpers for the NexusAI Solana escrow program (`data_arbiter`).
+ * Client helpers for the Escora Solana escrow program (`data_arbiter`).
  * IDL: `anchor build` → `target/idl/data_arbiter.json`.
  *
  * Avoid Node's `Buffer` here — it is not defined in the browser unless polyfilled,

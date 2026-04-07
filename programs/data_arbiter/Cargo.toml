@@ -1,7 +1,7 @@
 [package]
 name = "data_arbiter"
 version = "0.1.0"
-description = "NexusAI / DataArbiter dataset escrow with permissionless ai_judge"
+description = "Escora / DataArbiter dataset escrow with permissionless ai_judge"
 edition = "2021"
 
 [lib]

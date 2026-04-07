@@ -80,7 +80,7 @@ export default function EscrowPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · NexusAI</h1>
+        <h1 className="font-heading text-2xl font-bold text-foreground">AI-oracled Escrow · Escora</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Agent economy: оркул подписывает <code className="text-xs bg-muted px-1 rounded">ai_judge</code> на devnet. REST по
           умолчанию — <strong className="text-foreground/90">soltoloka-backend</strong> на Vercel; сценарии{" "}

@@ -79,7 +79,7 @@ export default function DatasetsPage() {
     <div className="p-6 space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Маркетплейс датасетов · NexusAI</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Маркетплейс датасетов · Escora</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Демо-каталог; вкладки HF / Kaggle ходят{" "}
             <span className="text-foreground/90">напрямую</span> в публичные API (
@@ -101,7 +101,7 @@ export default function DatasetsPage() {
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ["demo", "Демо NexusAI"],
+            ["demo", "Демо Escora"],
             ["huggingface", "Hugging Face"],
             ["kaggle", "Kaggle"],
           ] as const

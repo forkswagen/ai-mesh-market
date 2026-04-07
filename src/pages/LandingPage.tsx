@@ -52,10 +52,10 @@ function LandingNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2 text-white">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <span className="font-heading text-sm font-bold text-primary-foreground">N</span>
+            <span className="font-heading text-sm font-bold text-primary-foreground">E</span>
           </div>
           <div className="leading-tight">
-            <span className="font-heading block text-sm font-bold sm:text-base">NexusAI</span>
+            <span className="font-heading block text-sm font-bold sm:text-base">Escora</span>
             <span className="hidden text-[10px] text-white/50 sm:block">Agent Economy · Solana devnet</span>
           </div>
         </Link>
@@ -106,7 +106,7 @@ export default function LandingPage() {
 
       <AetherFlowHero
         badge="Solana devnet · программа data_arbiter"
-        title="NexusAI"
+        title="Escora"
         description="Маркетплейс задач, датасетов, GPU и AI-агентов с on-chain эскроу. Автономные выплаты и возвраты через инструкцию ai_judge — доверие к сделкам с данными без ручного арбитража."
         primaryCta={{ to: "/dashboard", label: "Открыть приложение" }}
         secondaryCta={{ to: "/escrow", label: "AI Escrow" }}
@@ -227,7 +227,7 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/10 bg-zinc-950 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:px-6">
           <div className="text-center sm:text-left">
-            <p className="font-heading font-semibold text-white">NexusAI</p>
+            <p className="font-heading font-semibold text-white">Escora</p>
             <p className="mt-1 text-sm text-white/45">Маркетплейс и AI Escrow · National Solana Hackathon use-case</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm">

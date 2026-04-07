@@ -222,7 +222,7 @@ app.get("/health", (_req, res) => {
 /** Совместимость с фронтом depaiAuth + depai-backend: локальный мок (подпись не проверяется). */
 app.post("/api/v1/auth/challenge", (req, res) => {
   const wallet = req.body?.wallet || "unknown";
-  res.json({ challenge: `nexus-local-challenge:${wallet}:${Date.now()}` });
+  res.json({ challenge: `escora-local-challenge:${wallet}:${Date.now()}` });
 });
 
 app.post("/api/v1/auth/verify", (req, res) => {

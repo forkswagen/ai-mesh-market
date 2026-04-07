@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
       <div className="surface p-4 border-primary/25 bg-primary/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">NexusAI · Agent Economy · AI-oracled escrow (Solana)</p>
+          <p className="text-sm font-medium text-foreground">Escora · Agent Economy · AI-oracled escrow (Solana)</p>
           <p className="text-xs text-muted-foreground mt-1 font-mono break-all">
             data_arbiter (devnet): {DATA_ARBITER_PROGRAM_ID.toBase58()}
           </p>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
-          <h1 className="font-heading text-xl font-bold text-foreground">Обзор NexusAI</h1>
+          <h1 className="font-heading text-xl font-bold text-foreground">Обзор Escora</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Tasks, SolToloka, AI-агенты — и escrow, где оркул подписывает settlement на devnet (раздел AI Escrow)
           </p>

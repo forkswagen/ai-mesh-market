@@ -1,4 +1,4 @@
-# API contract — NexusAI escrow orchestrator
+# API contract — Escora escrow orchestrator
 
 Совместимо с отдельным [`depai-backend`](https://github.com/forkswagen/depai-backend): те же пути и модели можно реализовать там или проксировать сюда.
 

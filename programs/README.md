@@ -1,4 +1,4 @@
-# `data_arbiter` (NexusAI · on-chain dataset escrow)
+# `data_arbiter` (Escora · on-chain dataset escrow)
 
 Solana / Anchor program deployed on **devnet** for hackathon demo: escrow SOL for a dataset deal, submit a content hash, then settle via **`ai_judge`** (permissionless signer) or optional manual **`judge_authority`**.
 

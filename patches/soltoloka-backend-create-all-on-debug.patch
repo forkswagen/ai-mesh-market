@@ -8,7 +8,7 @@
 -    # In production, use Alembic for migrations
 -    # For now, create tables if not exists for quick testing (optional)
 -    pass
-+    """В DEBUG поднимаем схему без Alembic (удобно для локальной связки с NexusAI)."""
++    """В DEBUG поднимаем схему без Alembic (удобно для локальной связки с Escora)."""
 +    if settings.DEBUG:
 +        import app.models.user  # noqa: F401
 +        import app.models.node  # noqa: F401

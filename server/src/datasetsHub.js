@@ -14,7 +14,7 @@ function clampInt(n, min, max, fallback) {
 const HUB_HEADERS = {
   Accept: "application/json",
   /** Без UA часть CDN отдаёт HTML-страницу вместо JSON. */
-  "User-Agent": "Mozilla/5.0 (compatible; NexusAI-Orchestrator/1.0; +https://github.com/)",
+  "User-Agent": "Mozilla/5.0 (compatible; Escora-Orchestrator/1.0; +https://github.com/)",
 };
 
 /**

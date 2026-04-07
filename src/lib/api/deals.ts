@@ -1,7 +1,7 @@
 import { apiUrl } from "./env";
 import { authHeaders, ensureDepaiToken } from "./depaiAuth";
 
-/** Orchestrator-совместимые ручки на depai-backend (см. app/api/nexus_bridge.py). */
+/** Orchestrator-совместимые ручки на depai-backend (см. app/api/nexus_bridge.py; legacy имя модуля). */
 async function parseError(res: Response): Promise<string> {
   try {
     const j = await res.json();
