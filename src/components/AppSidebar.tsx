@@ -1,4 +1,5 @@
 import { LayoutDashboard, ListTodo, Database, Shield, Bot, Settings, Wallet, Cable, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { useSolanaWallet } from "@/contexts/SolanaWalletContext";
@@ -34,7 +35,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
+        <Link
+          to="/"
+          title="На главную (лендинг)"
+          className="flex items-center gap-2 rounded-md outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent/80 focus-visible:ring-2 -m-1 p-1"
+        >
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
             <span className="text-primary-foreground font-heading font-bold text-sm">E</span>
           </div>
@@ -44,7 +49,7 @@ export function AppSidebar() {
               <span className="text-[10px] text-muted-foreground truncate">Agent Economy · AI Escrow (devnet)</span>
             </div>
           )}
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>
