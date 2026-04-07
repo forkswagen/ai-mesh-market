@@ -1,10 +1,19 @@
 import { apiUrl } from "@/lib/api/env";
 
+export type LiveAgentRow = {
+  logicalId: string;
+  sessionId: string;
+  name: string;
+  accepting: boolean;
+  busy: boolean;
+};
+
 export type OracleWorkersStats = {
   ok: boolean;
   connected: number;
   busy: number;
   workerIds: string[];
+  agents?: LiveAgentRow[];
 };
 
 export async function fetchOracleWorkersStats(): Promise<OracleWorkersStats> {

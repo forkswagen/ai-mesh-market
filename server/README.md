@@ -53,4 +53,8 @@ npm run dev
 
 3. Иначе — эвристика в `src/heuristicJudge.js`.
 
-Статус очереди: `GET /api/agent/oracle-workers`.
+Статус очереди: `GET /api/agent/oracle-workers` (в ответе также **`agents`** с `accepting` / `busy`).
+
+Чат с фронта через выбранный хост: **`POST /api/agent/infer`** → воркер получает **`lm_chat`** и шлёт запрос в локальный LM Studio. Список для UI: **`GET /api/agent/live`**.
+
+Локальная панель хоста (LM Studio + диагностика + accepting): из **корня** репозитория **`npm run agent-host:panel`** после `pip install -r streamlit/requirements.txt`. Исходник: [`streamlit/agent_host_panel.py`](../streamlit/agent_host_panel.py). API напрямую: **`POST /api/agent/control/accepting`** (см. `AGENT_CONTROL_SECRET` в `.env.example`).

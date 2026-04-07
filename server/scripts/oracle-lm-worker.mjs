@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Локальный воркер оракула escrow: WebSocket к оркестратору + LM Studio на этой машине.
- * Запуск (рядом с работающим npm run server:dev):
- *   ORACLE_WORKER_WS_URL=ws://127.0.0.1:8787/ws/oracle-worker node scripts/oracle-lm-worker.mjs
+ * Локальный агент: WebSocket → оркестратор, LM Studio на этой машине.
+ * - oracle_eval — вердикт escrow
+ * - lm_chat — произвольный чат с фронта (POST /api/agent/infer)
  *
- * Несколько процессов → round-robin на сервере.
+ *   ORACLE_WORKER_WS_URL=ws://127.0.0.1:8787/ws/oracle-worker npm run oracle-worker --prefix server
  */
 import "dotenv/config";
 import WebSocket from "ws";
@@ -14,14 +14,28 @@ import { parseVerdictPayload } from "../src/oracleParse.mjs";
 
 const WS_URL = process.env.ORACLE_WORKER_WS_URL || "ws://127.0.0.1:8787/ws/oracle-worker";
 const WORKER_ID = (process.env.ORACLE_WORKER_ID || "lm-local").slice(0, 64);
+const DISPLAY_NAME = (process.env.AGENT_DISPLAY_NAME || WORKER_ID).slice(0, 128);
 
 function connect() {
   const sep = WS_URL.includes("?") ? "&" : "?";
   const url = `${WS_URL}${sep}id=${encodeURIComponent(WORKER_ID)}`;
   const ws = new WebSocket(url);
 
+  const reply = (payload) => {
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+  };
+
   ws.on("open", () => {
     console.error(`[oracle-worker] connected ${url}`);
+    reply({
+      type: "agent_hello",
+      logicalId: WORKER_ID,
+      name: DISPLAY_NAME,
+    });
   });
 
   ws.on("message", async (raw) => {
@@ -31,15 +45,52 @@ function connect() {
     } catch {
       return;
     }
-    if (msg.type !== "oracle_eval" || !msg.jobId) return;
 
-    const reply = (payload) => {
+    if (msg.type === "lm_chat" && msg.jobId) {
       try {
-        ws.send(JSON.stringify(payload));
-      } catch {
-        /* ignore */
+        const model =
+          (typeof msg.model === "string" && msg.model.trim()) ||
+          process.env.ORACLE_LLM_MODEL ||
+          "local-model";
+        const urlChat = getLmStudioChatCompletionsUrl();
+        const messages = Array.isArray(msg.messages) ? msg.messages : [];
+        const body = {
+          model,
+          messages,
+          temperature: typeof msg.temperature === "number" ? msg.temperature : 0.7,
+          max_tokens: 2048,
+        };
+        const res = await fetch(urlChat, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          reply({ type: "lm_chat_result", jobId: msg.jobId, ok: false, error: `LM HTTP ${res.status}` });
+          return;
+        }
+        const data = await res.json();
+        const m = data.choices?.[0]?.message;
+        let text = (m?.content && String(m.content)) || "";
+        if (!text && typeof m?.reasoning_content === "string") text = String(m.reasoning_content);
+        text = text.trim();
+        if (!text) {
+          reply({ type: "lm_chat_result", jobId: msg.jobId, ok: false, error: "Empty LLM content" });
+          return;
+        }
+        reply({ type: "lm_chat_result", jobId: msg.jobId, ok: true, text });
+      } catch (e) {
+        reply({
+          type: "lm_chat_result",
+          jobId: msg.jobId,
+          ok: false,
+          error: String(e?.message || e),
+        });
       }
-    };
+      return;
+    }
+
+    if (msg.type !== "oracle_eval" || !msg.jobId) return;
 
     try {
       const text = String(msg.deliverableText || "");

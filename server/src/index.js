@@ -5,9 +5,21 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import cors from "cors";
 import { randomUUID, createHash } from "node:crypto";
-import { createDeal, patchDeal, getDeal, listDeals, dbDriver } from "./db.js";
+import { createDeal, patchDeal, getDeal, listDeals, dbDriver, touchWalletIdentity } from "./db.js";
 import { attachDealsWebSocket, broadcastDealsUpdate } from "./dealsWs.js";
-import { getOracleWorkerStats } from "./oracleWorkerPool.js";
+import {
+  getOracleWorkerStats,
+  listLiveAgents,
+  runChatThroughAgent,
+  setAgentAccepting,
+  setAgentLifecycleHooks,
+} from "./oracleWorkerPool.js";
+import {
+  onAgentWsLifecycle,
+  registerAgentWithWallet,
+  listRegisteredAgentsPublic,
+  sanitizeAgentLogicalId,
+} from "./agentRegistry.js";
 import { runOracle } from "./oracle.mjs";
 import { fetchLmStudioModels, getLmStudioBaseUrl } from "./lmStudioClient.js";
 import { Connection, loadKp, runFullChain } from "./solanaChain.js";
@@ -17,6 +29,9 @@ import { fetchHuggingFaceDatasets, fetchKaggleDatasets } from "./datasetsHub.js"
 
 /** Абсолютный каталог `server/src` — в /health (dev) чтобы убедиться, какой файл реально запущен на :PORT */
 const SERVER_SRC_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Увеличивайте при добавлении критичных маршрутов. Старый процесс на :8787 не будет отдавать /api/meta и новый apiRevision. */
+const API_REVISION = 4;
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
@@ -69,6 +84,19 @@ function sha256hex(s) {
   return createHash("sha256").update(s, "utf8").digest("hex");
 }
 
+function checkAgentControlAuth(req) {
+  const required = process.env.AGENT_CONTROL_SECRET?.trim();
+  const secret = (req.headers["x-agent-control-secret"] || req.body?.secret || "").toString().trim();
+  if (required) {
+    if (secret !== required) return { ok: false, status: 401, error: "invalid or missing agent control secret" };
+    return { ok: true };
+  }
+  if (process.env.NODE_ENV === "production") {
+    return { ok: false, status: 503, error: "AGENT_CONTROL_SECRET must be set in production" };
+  }
+  return { ok: true };
+}
+
 async function processDeal(body, res) {
   const {
     dealId,
@@ -79,6 +107,7 @@ async function processDeal(body, res) {
     runChain = false,
     expectedHashHex: expectedOverride,
     oracleLlmModel,
+    oracleWorkerAgentId,
   } = body || {};
 
   if (!dealId || !buyerPublicKey || !sellerPublicKey || !amountLamports) {
@@ -143,6 +172,10 @@ async function processDeal(body, res) {
     await broadcastDealsUpdate();
     const oracleResult = await runOracle(deliverableText, process.env, {
       oracleLlmModel: typeof oracleLlmModel === "string" ? oracleLlmModel : undefined,
+      oracleWorkerLogicalId:
+        typeof oracleWorkerAgentId === "string" && oracleWorkerAgentId.trim()
+          ? oracleWorkerAgentId.trim()
+          : undefined,
     });
 
     const chain = await runFullChain({
@@ -185,9 +218,76 @@ async function processDeal(body, res) {
   }
 }
 
-/** Подключённые воркеры оракула (WebSocket /ws/oracle-worker) для round-robin escrow. */
+/** Подключённые воркеры (WebSocket /ws/oracle-worker): счётчики + список агентов. */
 app.get("/api/agent/oracle-workers", (_req, res) => {
   res.json({ ok: true, ...getOracleWorkerStats() });
+});
+
+/** Диагностика: какая копия оркестратора отвечает на порту (curl до перезапуска vs после). */
+app.get("/api/meta", (_req, res) => {
+  res.json({
+    ok: true,
+    apiRevision: API_REVISION,
+    app: "depai-orchestrator",
+    serverSrcDir: SERVER_SRC_DIR,
+    db: dbDriver(),
+    agentEndpoints: [
+      "GET /api/agent/live",
+      "GET /api/agent/oracle-workers",
+      "POST /api/agent/infer",
+      "POST /api/agent/control/accepting",
+      "GET /api/agent/models",
+      "POST /api/v1/agents/challenge",
+      "POST /api/v1/agents/register",
+      "GET /api/v1/agents/registry",
+    ],
+  });
+});
+
+/** Список live-агентов (logicalId, accepting, busy, …) для выбора на фронте. */
+app.get("/api/agent/live", (_req, res) => {
+  res.json({ ok: true, agents: listLiveAgents() });
+});
+
+/**
+ * Чат через выбранного агента: бэкенд → WebSocket → oracle-worker → LM Studio.
+ * Body: { agentId, messages: [{role,content}], model?, temperature? }
+ */
+app.post("/api/agent/infer", async (req, res) => {
+  const { agentId, messages, model, temperature } = req.body || {};
+  if (typeof agentId !== "string" || !agentId.trim()) {
+    return res.status(400).json({ ok: false, error: "agentId (logicalId агента) обязателен" });
+  }
+  try {
+    const out = await runChatThroughAgent(
+      {
+        agentLogicalId: agentId.trim(),
+        messages,
+        model: typeof model === "string" ? model : "",
+        temperature: typeof temperature === "number" ? temperature : 0.7,
+      },
+      process.env,
+    );
+    res.json({ ok: true, text: out.text, agentLogicalId: out.agentLogicalId, sessionId: out.sessionId });
+  } catch (e) {
+    res.status(502).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+/**
+ * Вкл/выкл приём задач для хоста (logicalId = ORACLE_WORKER_ID).
+ * Streamlit / cron: заголовок X-Agent-Control-Secret или body.secret = AGENT_CONTROL_SECRET.
+ */
+app.post("/api/agent/control/accepting", (req, res) => {
+  const auth = checkAgentControlAuth(req);
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error });
+  const logicalId = req.body?.logicalId;
+  const accepting = !!req.body?.accepting;
+  if (typeof logicalId !== "string" || !logicalId.trim()) {
+    return res.status(400).json({ ok: false, error: "logicalId required" });
+  }
+  const { updated, logicalId: id } = setAgentAccepting(logicalId.trim(), accepting);
+  res.json({ ok: true, logicalId: id, accepting, updated });
 });
 
 /** Список моделей LM Studio (agent) — фронт не ходит в LM Studio напрямую. */
@@ -207,10 +307,14 @@ app.get("/api/agent/models", async (_req, res) => {
 
 /** Только оракул (LM Studio / эвристика), без Solana — для Streamlit и отладки. */
 app.post("/api/agent/oracle", async (req, res) => {
-  const { deliverableText = "", oracleLlmModel } = req.body || {};
+  const { deliverableText = "", oracleLlmModel, oracleWorkerAgentId } = req.body || {};
   try {
     const result = await runOracle(String(deliverableText), process.env, {
       oracleLlmModel: typeof oracleLlmModel === "string" ? oracleLlmModel : undefined,
+      oracleWorkerLogicalId:
+        typeof oracleWorkerAgentId === "string" && oracleWorkerAgentId.trim()
+          ? oracleWorkerAgentId.trim()
+          : undefined,
     });
     res.json({ ok: true, verdict: result.verdict, reason: result.reason, source: result.source });
   } catch (e) {
@@ -227,6 +331,7 @@ app.get("/health", (_req, res) => {
     ok: true,
     programId,
     db: dbDriver(),
+    apiRevision: API_REVISION,
     /** Есть в этом процессе маршрут GET /api/agent/oracle-workers (если false — запущена старая/другая копия server/). */
     hasOracleWorkerStatsRoute: true,
   };
@@ -236,17 +341,77 @@ app.get("/health", (_req, res) => {
   res.json(payload);
 });
 
-/** Совместимость с фронтом depaiAuth + depai-backend: локальный мок (подпись не проверяется). */
+/**
+ * SIWS-стиль: фронт просит challenge, кошелёк подписывает UTF-8, verify с полями message + signatureBase64.
+ * Без подписи — прежний dev-мок для совместимости.
+ */
 app.post("/api/v1/auth/challenge", (req, res) => {
-  const wallet = req.body?.wallet || "unknown";
-  res.json({ challenge: `escora-local-challenge:${wallet}:${Date.now()}` });
+  const wallet = String(req.body?.wallet || "unknown").trim() || "unknown";
+  const message = `escora:sign-in:${wallet}:${Date.now()}`;
+  res.json({ challenge: message, message });
 });
 
-app.post("/api/v1/auth/verify", (req, res) => {
+app.post("/api/v1/auth/verify", async (req, res) => {
+  const wallet = String(req.body?.wallet || "").trim();
+  const message = req.body?.message ?? req.body?.challenge;
+  const signatureBase64 = req.body?.signatureBase64;
+  if (wallet && message && signatureBase64) {
+    const { verifySolanaMessageSignature } = await import("./walletVerify.js");
+    if (!verifySolanaMessageSignature(wallet, String(message), String(signatureBase64))) {
+      return res.status(401).json({ error: "invalid signature" });
+    }
+    await touchWalletIdentity({ wallet_pubkey: wallet, last_challenge: String(message).slice(0, 500) });
+    return res.json({
+      access_token: `siws:${wallet}:${Date.now()}`,
+      token_type: "Bearer",
+      wallet,
+    });
+  }
   res.json({
     access_token: `local-orchestrator-token:${req.body?.wallet || "dev"}`,
     token_type: "Bearer",
   });
+});
+
+/** Challenge для привязки кошелька к logical_id агента (то же сообщение подписывается в Phantom). */
+app.post("/api/v1/agents/challenge", (req, res) => {
+  const wallet = String(req.body?.wallet || "").trim();
+  const rawId = String(req.body?.logicalId || "").trim();
+  if (!wallet || !rawId) {
+    return res.status(400).json({ error: "wallet and logicalId required" });
+  }
+  const logicalId = sanitizeAgentLogicalId(rawId);
+  const message = `escora:register-agent:${logicalId}:${wallet}`;
+  res.json({ message, logicalId });
+});
+
+app.post("/api/v1/agents/register", async (req, res) => {
+  try {
+    const row = await registerAgentWithWallet({
+      wallet: String(req.body?.wallet || "").trim(),
+      logicalId: String(req.body?.logicalId || "").trim(),
+      message: String(req.body?.message || ""),
+      signatureBase64: String(req.body?.signatureBase64 || ""),
+      displayName: typeof req.body?.displayName === "string" ? req.body.displayName : undefined,
+      webhookUrl: typeof req.body?.webhookUrl === "string" ? req.body.webhookUrl : undefined,
+    });
+    res.json({
+      ok: true,
+      agent: {
+        id: row.id,
+        walletPubkey: row.wallet_pubkey,
+        logicalId: row.logical_id,
+        displayName: row.display_name,
+      },
+    });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+app.get("/api/v1/agents/registry", async (_req, res) => {
+  const agents = await listRegisteredAgentsPublic();
+  res.json({ ok: true, agents });
 });
 
 app.get("/api/deals", async (_req, res) => {
@@ -288,6 +453,7 @@ app.post("/api/demo/seeded", (req, res) => {
       deliverableText,
       runChain: true,
       oracleLlmModel: req.body?.oracleLlmModel,
+      oracleWorkerAgentId: req.body?.oracleWorkerAgentId,
     },
     res,
   ).catch((e) => res.status(500).json({ error: String(e) }));
@@ -295,6 +461,15 @@ app.post("/api/demo/seeded", (req, res) => {
 
 app.post("/api/deals/:id/oracle", (_req, res) => {
   res.status(501).json({ error: "Use POST /api/deals with runChain or POST /api/demo/seeded" });
+});
+
+setAgentLifecycleHooks({
+  onConnected: (s) => {
+    void onAgentWsLifecycle("agent.connected", { logicalId: s.logicalId, sessionId: s.sessionId });
+  },
+  onDisconnected: (p) => {
+    void onAgentWsLifecycle("agent.disconnected", p);
+  },
 });
 
 const server = http.createServer(app);

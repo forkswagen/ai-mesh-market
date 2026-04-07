@@ -19,9 +19,17 @@
 1. Процессы **`npm run oracle-worker --prefix server`** подключаются к **`WS /ws/oracle-worker`** (опционально `?id=my-node`).
 2. Оркестратор рассылает **`oracle_eval`** `{ jobId, deliverableText, model, temperature }`; воркер отвечает **`oracle_result`** `{ jobId, ok, verdict?, reason?, error? }` после вызова своего LM Studio.
 3. Выбор воркера: **`ORACLE_WORKER_STRATEGY=round_robin`** (по умолчанию) среди свободных подключений или **`random`**. Если воркеров нет, истек таймаут (`ORACLE_WORKER_TIMEOUT_MS`) или ошибка — используется LM на сервере (`LM_STUDIO_BASE_URL` / `ORACLE_LLM_URL`) или эвристика.
-4. **`GET /api/agent/oracle-workers`** — число подключённых и занятых воркеров.
+4. **`GET /api/agent/oracle-workers`** — счётчики и массив **`agents`**: `logicalId`, `sessionId`, `name`, **`accepting`**, `busy`.
+5. **`GET /api/agent/live`** — только список агентов (как в `agents` выше).
+6. Чат через выбранный хост: **`POST /api/agent/infer`** с телом `{ "agentId": "<logicalId>", "messages": [{ "role": "user", "content": "..." }], "model": "", "temperature": 0.7 }`. Оркестратор шлёт на WebSocket **`lm_chat`**; воркер отвечает **`lm_chat_result`** `{ jobId, ok, text?, error? }`.
+7. Вкл/выкл приёма задач на хосте (тот же `logicalId`, что `?id=` при подключении): **`POST /api/agent/control/accepting`** с `{ "logicalId": "my-node", "accepting": true|false, "secret": "..." }` и/или заголовок **`X-Agent-Control-Secret`**. В **production** на сервере должен быть задан **`AGENT_CONTROL_SECRET`**.
+8. В **`POST /api/deals`**, **`POST /api/demo/seeded`**, **`POST /api/agent/oracle`** опционально **`oracleWorkerAgentId`** (logicalId) — оракул идёт в указанный воркер, иначе round-robin среди `accepting`.
 
 ## Эндпоинты
+
+### `GET /api/meta`
+
+Диагностика деплоя: **`apiRevision`**, **`serverSrcDir`**, **`db`** (`pg` / `sqlite`), список agent-endpoints. Если здесь нет `apiRevision` ≥ 3 или нет `GET /api/agent/live` в списке — на порту крутится **старая** сборка оркестратора (перезапустите `server/`).
 
 ### `GET /health`
 

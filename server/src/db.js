@@ -73,13 +73,40 @@ function initSqlite() {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS wallet_identities (
+      wallet_pubkey TEXT PRIMARY KEY,
+      last_auth_at BIGINT NOT NULL,
+      last_challenge TEXT
+    );
+    CREATE TABLE IF NOT EXISTS registered_agents (
+      id TEXT PRIMARY KEY,
+      wallet_pubkey TEXT NOT NULL,
+      logical_id TEXT NOT NULL,
+      display_name TEXT,
+      webhook_url TEXT,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      UNIQUE(wallet_pubkey, logical_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_registered_agents_logical ON registered_agents(logical_id);
+    CREATE INDEX IF NOT EXISTS idx_registered_agents_wallet ON registered_agents(wallet_pubkey);
+  `);
+
   return db;
 }
 
 if (DATABASE_URL) {
   pool = new pg.Pool({ connectionString: DATABASE_URL });
+  console.log("[db] PostgreSQL (DATABASE_URL)");
 } else {
   sqlite = initSqlite();
+  console.log("[db] SQLite server/data/deals.sqlite — для одной БД на все среды задайте DATABASE_URL (например Neon)");
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "[db] production без DATABASE_URL: данные только на диске инстанса. Рекомендуется одна Postgres для тестов и прода.",
+    );
+  }
 }
 
 async function ensurePostgresSchema() {
@@ -121,6 +148,31 @@ async function ensurePostgresSchema() {
     );
     await client.query(
       `CREATE INDEX IF NOT EXISTS idx_platform_tasks_category ON platform_tasks(category);`,
+    );
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS wallet_identities (
+        wallet_pubkey TEXT PRIMARY KEY,
+        last_auth_at BIGINT NOT NULL,
+        last_challenge TEXT
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS registered_agents (
+        id TEXT PRIMARY KEY,
+        wallet_pubkey TEXT NOT NULL,
+        logical_id TEXT NOT NULL,
+        display_name TEXT,
+        webhook_url TEXT,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL,
+        UNIQUE(wallet_pubkey, logical_id)
+      );
+    `);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_registered_agents_logical ON registered_agents(logical_id);`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_registered_agents_wallet ON registered_agents(wallet_pubkey);`,
     );
   } finally {
     client.release();
@@ -260,4 +312,101 @@ export async function patchPlatformTask(id, patch) {
   const filtered = Object.fromEntries(keys.map((k) => [k, patch[k]]));
   const set = keys.map((k) => `${k} = @${k}`).join(", ");
   sqlite.prepare(`UPDATE platform_tasks SET ${set} WHERE id = @id`).run({ id, ...filtered });
+}
+
+/** @param {{ wallet_pubkey: string, last_challenge?: string | null }} row */
+export async function touchWalletIdentity(row) {
+  const now = Date.now();
+  if (pool) {
+    await pgQ(
+      `INSERT INTO wallet_identities (wallet_pubkey, last_auth_at, last_challenge)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (wallet_pubkey) DO UPDATE SET last_auth_at = $2, last_challenge = COALESCE($3, wallet_identities.last_challenge)`,
+      [row.wallet_pubkey, now, row.last_challenge ?? null],
+    );
+    return;
+  }
+  sqlite
+    .prepare(
+      `INSERT INTO wallet_identities (wallet_pubkey, last_auth_at, last_challenge) VALUES (?, ?, ?)
+       ON CONFLICT(wallet_pubkey) DO UPDATE SET last_auth_at = excluded.last_auth_at, last_challenge = COALESCE(excluded.last_challenge, last_challenge)`,
+    )
+    .run(row.wallet_pubkey, now, row.last_challenge ?? null);
+}
+
+/**
+ * @param {{ id: string, wallet_pubkey: string, logical_id: string, display_name: string | null, webhook_url: string | null }} row
+ */
+export async function upsertRegisteredAgent(row) {
+  const now = Date.now();
+  if (pool) {
+    const ex = await pgQ("SELECT id, created_at FROM registered_agents WHERE wallet_pubkey = $1 AND logical_id = $2", [
+      row.wallet_pubkey,
+      row.logical_id,
+    ]);
+    if (ex.rows[0]) {
+      await pgQ(
+        `UPDATE registered_agents SET display_name = $1, webhook_url = $2, updated_at = $3 WHERE id = $4`,
+        [row.display_name, row.webhook_url, now, ex.rows[0].id],
+      );
+      const r = await pgQ("SELECT * FROM registered_agents WHERE id = $1", [ex.rows[0].id]);
+      return r.rows[0];
+    }
+    await pgQ(
+      `INSERT INTO registered_agents (id, wallet_pubkey, logical_id, display_name, webhook_url, created_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [row.id, row.wallet_pubkey, row.logical_id, row.display_name, row.webhook_url, now, now],
+    );
+    const r = await pgQ("SELECT * FROM registered_agents WHERE id = $1", [row.id]);
+    return r.rows[0];
+  }
+  const ex = sqlite
+    .prepare("SELECT id FROM registered_agents WHERE wallet_pubkey = ? AND logical_id = ?")
+    .get(row.wallet_pubkey, row.logical_id);
+  const id = ex?.id || row.id;
+  if (ex) {
+    sqlite
+      .prepare(
+        "UPDATE registered_agents SET display_name = @display_name, webhook_url = @webhook_url, updated_at = @updated_at WHERE id = @id",
+      )
+      .run({
+        id,
+        display_name: row.display_name,
+        webhook_url: row.webhook_url,
+        updated_at: now,
+      });
+  } else {
+    sqlite
+      .prepare(
+        `INSERT INTO registered_agents (id, wallet_pubkey, logical_id, display_name, webhook_url, created_at, updated_at)
+         VALUES (@id, @wallet_pubkey, @logical_id, @display_name, @webhook_url, @created_at, @updated_at)`,
+      )
+      .run({
+        id,
+        wallet_pubkey: row.wallet_pubkey,
+        logical_id: row.logical_id,
+        display_name: row.display_name,
+        webhook_url: row.webhook_url,
+        created_at: now,
+        updated_at: now,
+      });
+  }
+  return sqlite.prepare("SELECT * FROM registered_agents WHERE id = ?").get(id);
+}
+
+export async function listRegisteredAgents() {
+  if (pool) {
+    const { rows } = await pgQ("SELECT * FROM registered_agents ORDER BY updated_at DESC LIMIT 500");
+    return rows;
+  }
+  return sqlite.prepare("SELECT * FROM registered_agents ORDER BY updated_at DESC LIMIT 500").all();
+}
+
+/** @param {string} logicalId */
+export async function getRegisteredAgentsByLogicalId(logicalId) {
+  if (pool) {
+    const { rows } = await pgQ("SELECT * FROM registered_agents WHERE logical_id = $1", [logicalId]);
+    return rows;
+  }
+  return sqlite.prepare("SELECT * FROM registered_agents WHERE logical_id = ?").all(logicalId);
 }

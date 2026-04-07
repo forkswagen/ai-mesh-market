@@ -46,6 +46,8 @@ npm run dev   # из корня, параллельно
 
 **WebSocket / LM Studio / oracle-worker:** реализованы в `server/` (`/ws`, `/ws/agent`, `/ws/oracle-worker`).
 
+**Локальный хост агента (LM Studio у пользователя):** панель Streamlit [`streamlit/agent_host_panel.py`](streamlit/agent_host_panel.py) — проверка оркестратора и LM Studio (`/v1/models`), вкл/выкл приёма задач, готовая команда для `oracle-worker`. Запуск: `pip install -r streamlit/requirements.txt`, затем **`npm run agent-host:panel`** из корня (UI на [http://127.0.0.1:8501](http://127.0.0.1:8501)). Воркер по-прежнему отдельным процессом: `npm run oracle-worker --prefix server`.
+
 ### Главный сценарий (около 5 минут)
 
 Цель: убедиться, что **AI-oracled escrow** на Solana devnet проходит полный цикл до `ai_judge`.

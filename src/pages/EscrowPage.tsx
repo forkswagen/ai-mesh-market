@@ -59,6 +59,7 @@ export default function EscrowPage() {
   useOrchestratorDealsWs(qc);
   const agentWs = useAgentChannelWs(true);
   const [oracleModel, setOracleModel] = useState("");
+  const [oracleWorkerSessionId, setOracleWorkerSessionId] = useState("");
   const healthQ = useQuery({
     queryKey: ["api", "health"],
     queryFn: fetchApiHealth,
@@ -79,10 +80,14 @@ export default function EscrowPage() {
   });
 
   const demoM = useMutation({
-    mutationFn: () =>
-      postDemoSeeded({
+    mutationFn: () => {
+      const agents = oracleHostsQ.data?.agents ?? [];
+      const host = agents.find((a) => a.sessionId === oracleWorkerSessionId);
+      return postDemoSeeded({
         ...(oracleModel.trim() ? { oracleLlmModel: oracleModel.trim() } : {}),
-      }),
+        ...(host?.logicalId ? { oracleWorkerAgentId: host.logicalId } : {}),
+      });
+    },
     onSuccess: (data) => {
       if (data.state === "settled") {
         toast.success("Сделка закрыта on-chain (ai_judge)");
@@ -233,6 +238,27 @@ export default function EscrowPage() {
                 {m.id}
               </option>
             ))}
+          </select>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <label className="text-xs text-muted-foreground shrink-0" htmlFor="oracle-host">
+            Хост oracle-worker (опционально)
+          </label>
+          <select
+            id="oracle-host"
+            className="flex h-9 w-full sm:max-w-md rounded-md border border-input bg-background px-3 py-1 text-sm"
+            value={oracleWorkerSessionId}
+            onChange={(e) => setOracleWorkerSessionId(e.target.value)}
+            disabled={demoM.isPending}
+          >
+            <option value="">Round-robin по accepting</option>
+            {(oracleHostsQ.data?.agents ?? [])
+              .filter((a) => a.accepting)
+              .map((a) => (
+                <option key={a.sessionId} value={a.sessionId}>
+                  {a.name} · {a.logicalId}
+                </option>
+              ))}
           </select>
         </div>
       </div>

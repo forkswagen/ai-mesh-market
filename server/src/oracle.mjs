@@ -7,7 +7,7 @@ import { parseVerdictPayload } from "./oracleParse.mjs";
 /**
  * @param {string} deliverableText
  * @param {{ ORACLE_LLM_URL?: string, ORACLE_LLM_MODEL?: string, ORACLE_LLM_API_KEY?: string, LM_STUDIO_BASE_URL?: string, ORACLE_USE_AGENT_WORKERS?: string, ORACLE_WORKER_TIMEOUT_MS?: string }} env
- * @param {{ oracleLlmModel?: string }} [opts]
+ * @param {{ oracleLlmModel?: string, oracleWorkerLogicalId?: string }} [opts]
  */
 export async function runOracle(deliverableText, env, opts = {}) {
   const useWorkers = env.ORACLE_USE_AGENT_WORKERS !== "0";

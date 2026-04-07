@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "server:dev": "npm run dev --prefix server",
     "dev:demo": "concurrently -n web,api -c cyan,magenta \"npm run dev\" \"npm run server:dev\"",
+    "agent-host:panel": "python3 -m streamlit run streamlit/agent_host_panel.py --server.address 127.0.0.1",
     "setup:devnet": "node scripts/setup-devnet-env.mjs",
     "demo:addrs": "node scripts/print-devnet-addresses.mjs",
     "demo:check": "node scripts/check-demo-prereqs.mjs",

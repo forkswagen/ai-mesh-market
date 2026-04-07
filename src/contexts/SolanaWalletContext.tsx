@@ -26,6 +26,8 @@ type SolanaWalletContextValue = {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   refreshBalance: () => Promise<void>;
+  /** Подпись произвольного UTF-8 текста → Base64 (64 байта detached). */
+  signUtf8Message: (message: string) => Promise<string>;
 };
 
 const SolanaWalletContext = createContext<SolanaWalletContextValue | null>(null);
@@ -127,6 +129,20 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
     setSolBalance(null);
   }, []);
 
+  const signUtf8Message = useCallback(async (message: string) => {
+    const p = getPhantom();
+    if (!p?.signMessage) {
+      throw new Error("Кошелёк не поддерживает signMessage (нужен Phantom)");
+    }
+    const enc = new TextEncoder();
+    const { signature } = await p.signMessage({ message: enc.encode(message) });
+    let bin = "";
+    signature.forEach((b) => {
+      bin += String.fromCharCode(b);
+    });
+    return btoa(bin);
+  }, []);
+
   const connected = Boolean(address);
 
   const value = useMemo<SolanaWalletContextValue>(
@@ -141,6 +157,7 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
       connect,
       disconnect,
       refreshBalance,
+      signUtf8Message,
     }),
     [
       connected,
@@ -153,6 +170,7 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
       connect,
       disconnect,
       refreshBalance,
+      signUtf8Message,
     ],
   );
 
